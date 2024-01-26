@@ -1,14 +1,12 @@
 import logging
 import os
 import pandas as pd
-import vcf
-import pysam
 import toytree
 import toyplot.svg
 from utils.gff import *
 from utils.odgi import *
 from utils.meta import *
-from utils.common import run, check_directory, delete_temp_files
+from utils.common import *
 from utils.gfa import segmentStr
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
@@ -53,14 +51,17 @@ class Tree(object):
             "tip_labels_style": {"font-size": "9px"},
         }
         canvas, axes, mark = tre.draw(width=400, height=300, **style)
-        toyplot.svg.render(canvas, os.path.join(self.outdir, "tmp", self.gene + ".svg"))
+        toyplot.svg.render(canvas, os.path.join(self.outdir, self.gene + ".svg"))
+        delete_temp_dir(os.path.join(self.outdir, "tmp"))
 
     def drawTreeWithGfa(self, altGfa, sampleTxt, label):
-        altRecords,isAltGenome,sampleList = self.getAltGeneRecords(altGfa, sampleTxt, label)
+        altRecords, isAltGenome, sampleList = self.getAltGeneRecords(
+            altGfa, sampleTxt, label
+        )
         refSeq, records = self.getGeneRecord()
         if not isAltGenome:
-           for i in sampleList:
-               altRecords.append(SeqRecord(Seq(refSeq), id=i, description=self.name))
+            for i in sampleList:
+                altRecords.append(SeqRecord(Seq(refSeq), id=i, description=self.name))
         records.extend(altRecords)
         SeqIO.write(
             records, os.path.join(self.outdir, "tmp", self.gene + ".fasta"), "fasta"
@@ -81,7 +82,10 @@ class Tree(object):
             "tip_labels_style": {"font-size": "9px"},
         }
         canvas, axes, mark = tre.draw(width=400, height=300, **style)
-        toyplot.svg.render(canvas, os.path.join(self.outdir, "tmp", self.gene + ".svg"))
+        toyplot.svg.render(
+            canvas, os.path.join(self.outdir, label + "." + self.gene + ".svg")
+        )
+        delete_temp_dir(os.path.join(self.outdir, "tmp"))
 
     def getGeneRecord(self):
         tRange, chrom = self.getGeneRange()
@@ -160,7 +164,7 @@ class Tree(object):
         ogPath(extractOgSortedFile, csvFile, self.threads)
         ogView(extractOgSortedFile, geneGfa, self.threads)
         sampleList = []
-        with open(sampleTxt, 'r') as file:
+        with open(sampleTxt, "r") as file:
             for line in file.readlines():
                 sampleList.append(line.strip())
         segment = segmentStr(geneGfa)
@@ -178,7 +182,7 @@ class Tree(object):
             commonNodes[tag] = commonCol
         if len(commonNodes) == 1 and next(iter(commonNodes)) == refGenome:
             sampleList.remove(refGenome)
-            return records,False,sampleList
+            return records, False, sampleList
         else:
             for x, y in commonNodes.items():
                 id = x
@@ -190,7 +194,9 @@ class Tree(object):
                     continue
                 seqRecord = SeqRecord(Seq(seq), id=id, description=self.name)
                 records.append(seqRecord)
-            otherGenome = [item for item in sampleList if item not in commonNodes.keys()]
+            otherGenome = [
+                item for item in sampleList if item not in commonNodes.keys()
+            ]
             for a in otherGenome:
                 seqRecord = SeqRecord(Seq(refSeq), id=a, description=self.name)
                 records.append(seqRecord)

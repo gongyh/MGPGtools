@@ -19,6 +19,7 @@ import os
 import subprocess
 import sys
 import gzip
+import shutil
 
 """Helper functions for running external programs."""
 
@@ -168,6 +169,16 @@ def delete_temp_files(file_path):
     """
     if os.path.exists(file_path):
         os.remove(file_path)
+
+
+def delete_temp_dir(dir_path):
+    """Delete temporary dir
+
+    Args:
+        dir_path (str): temporary dir path
+    """
+    if os.path.exists(dir_path):
+        shutil.rmtree(dir_path)
 
 
 def decompress_gz_file(file_path, workdir):
