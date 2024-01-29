@@ -18,8 +18,8 @@ jobs:
       with:
         path: ~/conda_pkgs_dir
         key:
-          ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{
-          hashFiles('environment.yml') }}
+          mgpgtools-${{ runner.os }}-conda-${{ matrix.python-version }}-${{
+          env.CACHE_NUMBER }}-${{ hashFiles('environment.yml') }}
     - uses: conda-incubator/setup-miniconda@v3
       with:
         python-version: ${{ matrix.python-version }}
