@@ -14,7 +14,7 @@ jobs:
       uses: actions/cache@v3
       env:
         # Increase this value to reset cache if environment.yml has not changed
-        CACHE_NUMBER: 4
+        CACHE_NUMBER: 5
       with:
         path: ~/conda_pkgs_dir
         key:
@@ -23,9 +23,6 @@ jobs:
     - uses: conda-incubator/setup-miniconda@v3
       with:
         python-version: ${{ matrix.python-version }}
-        miniforge-variant: Mambaforge
-        miniforge-version: latest
-        use-mamba: true
         auto-activate-base: false
         channels: bioconda,conda-forge,defaults
         channel-priority: false
@@ -41,7 +38,7 @@ jobs:
         printenv | sort
     - shell: bash -el {0}
       run: |
-        mamba install conda-forge::pylint
+        conda install conda-forge::pylint
     - shell: bash -el {0}
       run: |
         pylint -E $(git ls-files '*.py')
