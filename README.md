@@ -11,8 +11,16 @@ Tools for microbial graph pangenomes
 + prettytable
 + gfapy
 + Biopython
-+ clusterW
++ clustalW
 + toytree
++ pandas
+
+#### Quick environment setup
+```
+conda/mamba/micromamba env create -f environment.yml
+micromamba activate mgpg-tools
+python main.py -h
+```
 
 ### Arguments
     usage: python main.py stat -db DATABASE -rank [domain|phylum|class|order|family|genus] -name NAME -outdir OUTDIR [-h Help]

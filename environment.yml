@@ -1,0 +1,13 @@
+name: mgpg-tools
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - conda-forge::python=3
+  - bioconda::odgi=0.8.3
+  - bioconda::seqkit=2.5.1
+  - conda-forge::prettytable
+  - bioconda::gfapy
+  - conda-forge::biopython
+  - bioconda::clustalw
+  - conda-forge::toytree
