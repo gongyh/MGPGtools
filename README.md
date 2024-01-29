@@ -4,7 +4,7 @@ Tools for microbial graph pangenomes
 ## Contents
 
 ## Installation
-#### Pre-installation
+### Pre-installation
 + python3
 + odgi (0.8.3)
 + seqkit (v2.5.1)
@@ -15,14 +15,16 @@ Tools for microbial graph pangenomes
 + toytree
 + pandas
 
-#### Quick environment setup
+### Quick environment setup
 ```
 conda/mamba/micromamba env create -f environment.yml
 conda/mamba/micromamba activate mgpg-tools
 python main.py -h
 ```
 
-### Arguments
+## Arguments
+
+## Examples
     usage: python main.py stat -db DATABASE -rank [domain|phylum|class|order|family|genus] -name NAME -outdir OUTDIR [-h Help]
        eg. python main.py stat -db path_to_database -rank order -name Lactobacillales -outdir path_to_dir
 
