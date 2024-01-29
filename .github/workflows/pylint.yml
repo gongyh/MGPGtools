@@ -27,6 +27,7 @@ jobs:
         channels: bioconda,conda-forge,defaults
         channel-priority: true
         activate-environment: mgpg-tools
+        use-only-tar-bz2: true
         environment-file: environment.yml
     - shell: bash -el {0}
       run: |
