@@ -6,8 +6,8 @@ Tools for microbial graph pangenomes
 ## Installation
 #### Pre-installation
 + python3
-+ odgi(0.8.3)
-+ seqkit(v2.5.1)
++ odgi (0.8.3)
++ seqkit (v2.5.1)
 + prettytable
 + gfapy
 + Biopython
@@ -18,7 +18,7 @@ Tools for microbial graph pangenomes
 #### Quick environment setup
 ```
 conda/mamba/micromamba env create -f environment.yml
-micromamba activate mgpg-tools
+conda/mamba/micromamba activate mgpg-tools
 python main.py -h
 ```
 
