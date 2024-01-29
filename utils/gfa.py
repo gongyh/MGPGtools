@@ -44,7 +44,8 @@ def gfa_parse_link_path(database, name):
                     gfa_path[chrom]["overlap"] = row[3]
                 else:
                     p = []
-                    gfa_path[chrom]["path"] = p.append(row[2])
+                    p.append(row[2])
+                    gfa_path[chrom]["path"] = p
                     gfa_path[chrom]["overlap"] = row[3]
     return gfa_link, unsigned_gfa_link, gfa_path
 
