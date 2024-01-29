@@ -5,7 +5,7 @@ from extern.odgi import Odgi
 from search import Search
 from describe import Describe
 from tree import Tree
-from exceptions import *
+from exceptions import stat_args_judgment, viz_args_judgment
 
 
 class Analysis(object):
