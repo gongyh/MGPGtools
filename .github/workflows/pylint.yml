@@ -11,16 +11,23 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: conda-incubator/setup-miniconda@v3
-        with:
-          python-version: ${{ matrix.python-version }}
-          mamba-version: "*"
-          channels: bioconda,conda-forge,defaults
-          channel-priority: true
-          activate-environment: mgpg-tools
-          environment-file: environment.yml
-    - name: Install dependencies
+      with:
+        python-version: ${{ matrix.python-version }}
+        mamba-version: "*"
+        channels: bioconda,conda-forge,defaults
+        channel-priority: true
+        activate-environment: mgpg-tools
+        environment-file: environment.yml
+    - shell: bash -el {0}
+      run: |
+        conda info
+        conda list
+        conda config --show-sources
+        conda config --show
+        printenv | sort
+    - shell: bash -el {0}
       run: |
         mamba install conda-forge::pylint
-    - name: Analysing the code with pylint
+    - shell: bash -el {0}
       run: |
         pylint -E $(git ls-files '*.py')
