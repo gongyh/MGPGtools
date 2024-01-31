@@ -47,6 +47,8 @@ def main():
         analysis.describe(args)
     elif args.subparser_name == "tree":
         analysis.tree(args)
+    elif args.subparser_name == "core":
+        analysis.core(args)
 
 
 if __name__ == "__main__":

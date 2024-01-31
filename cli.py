@@ -241,4 +241,17 @@ def get_main_parser():
             __label(grp)
             __sampleTxt(grp)
             __help(grp)
+
+    with subparser(
+        sub_parsers,
+        "core",
+        "Find Core genes of graph pangenome",
+    ) as parser:
+        with arg_group(parser, "required named arguments") as grp:
+            __db(grp, required=True)
+            __name(grp, required=True)
+            __outdir(grp, required=True)
+        with arg_group(parser, "optional arguments") as grp:
+            __threads(grp)
+            __help(grp)
     return main_parser

@@ -26,7 +26,7 @@ def get_info(meta, name):
         "class": "",
         "order": "",
         "family": "",
-        "segments": "",
+        "nodes": "",
         "links": "",
         "genomesNum": "",
         "ref": "",
@@ -48,7 +48,7 @@ def get_chromosome(database, name):
     genomePath = os.path.join(
         database,
         "databases",
-        "ref_genomic",
+        "ref_genome",
         info["class"],
         info["ref"] + "_genomic.fna.gz",
     )

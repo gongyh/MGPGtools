@@ -5,6 +5,7 @@ from extern.odgi import Odgi
 from search import Search
 from describe import Describe
 from tree import Tree
+from core import Core
 from exceptions import *
 
 
@@ -33,6 +34,10 @@ class Analysis(object):
     def describe(self, options):
         describe = Describe(options)
         describe.describe_gfa()
+
+    def core(self, options):
+        core = Core(options)
+        core.staticCoreGene()
 
     def tree(self, options):
         tree = Tree(options)

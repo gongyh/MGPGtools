@@ -50,12 +50,24 @@ def gfa_parse_link_path(database, name):
     return gfa_link, unsigned_gfa_link, gfa_path
 
 
-def segmentStr(gfaFile):
-    segment = {}
+def nodeStr(gfaFile):
+    node = {}
     with open(gfaFile, "r") as f:
         lines = f.read().strip().split("\n")
         for line in lines:
             row = line.strip().split("\t")
             if row[0] == "S":
-                segment[row[1]] = row[2]
-    return segment
+                node[row[1]] = row[2]
+    return node
+
+
+def nodeLength(gfaFile):
+    nodeLen = {}
+    with open(gfaFile, "r") as f:
+        lines = f.read().strip().split("\n")
+        for line in lines:
+            r = []
+            row = line.strip().split("\t")
+            if row[0] == "S":
+                nodeLen[row[1]] = len(row[2])
+    return nodeLen

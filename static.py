@@ -20,7 +20,7 @@ class Stat(object):
         ) as f, open(os.path.join(self.outdir, self.name + ".tsv"), "w") as fout:
             reader = csv.reader(f, delimiter="\t")
             next(reader)
-            header = "Domain\tPhylum\tClass\tOrder\tFamily\tGenus\tSegments(Nodes)\tLinks(Edges)\tNo.genomes\tRef\n"
+            header = "Domain\tPhylum\tClass\tOrder\tFamily\tGenus\tNodes\tLinks\tNo.genomes\tRef\n"
             fout.write(header)
             for i in reader:
                 if i[self.rank] == self.name:

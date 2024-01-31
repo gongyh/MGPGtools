@@ -7,7 +7,7 @@ from utils.gff import *
 from utils.odgi import *
 from utils.meta import *
 from utils.common import *
-from utils.gfa import segmentStr
+from utils.gfa import nodeStr
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio import SeqIO
@@ -107,7 +107,7 @@ class Tree(object):
         ogSort(extractOGFile, extractOgSortedFile, self.threads)
         ogPath(extractOgSortedFile, csvFile, self.threads)
         ogView(extractOgSortedFile, geneGfa, self.threads)
-        segment = segmentStr(geneGfa)
+        node = nodeStr(geneGfa)
         df = pd.read_csv(csvFile, delimiter="\t")
         # df_merged = df.groupby(df.iloc[:, 0].str.split('#').str[0]).apply(self.merge_rows).reset_index(drop=True)
         gene_ratio = {}
@@ -126,14 +126,14 @@ class Tree(object):
                 continue
             length = 0
             for z in v:
-                length = length + len(segment[z[5:]])
+                length = length + len(node[z[5:]])
             rate = length / (int(tRange[1]) - int(tRange[0]))
             gene_ratio[k] = 1 - rate
         for x, y in commonNodes.items():
             id = x
             seq = ""
             for z in y:
-                seq += segment[z[5:]]
+                seq += node[z[5:]]
             if x == refGenome:
                 refSeq = seq
             seqRecord = SeqRecord(Seq(seq), id=id, description=self.name)
@@ -167,7 +167,7 @@ class Tree(object):
         with open(sampleTxt, "r") as file:
             for line in file.readlines():
                 sampleList.append(line.strip())
-        segment = segmentStr(geneGfa)
+        node = nodeStr(geneGfa)
         df = pd.read_csv(csvFile, delimiter="\t")
         # df_merged = df.groupby(df.iloc[:, 0].str.split('#').str[0]).apply(self.merge_rows).reset_index(drop=True)
         commonNodes = {}
@@ -188,7 +188,7 @@ class Tree(object):
                 id = x
                 seq = ""
                 for z in y:
-                    seq += segment[z[5:]]
+                    seq += node[z[5:]]
                 if x == refGenome:
                     refSeq = seq
                     continue

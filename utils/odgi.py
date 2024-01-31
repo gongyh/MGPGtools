@@ -54,6 +54,39 @@ def ogExtract(ogFile, extractogFile, tPath, tRange, threads):
     run(ODGIExtractCmd)
 
 
+def ogExtractBed(ogFile, extractOgFile, bedFile, threads):
+    ODGIExtractCmd = (
+        [
+            "odgi",
+            "extract",
+            "-i",
+            ogFile,
+            "-b",
+            bedFile,
+            "-d",
+            "0",
+            "-o",
+            extractOgFile,
+        ]
+        if threads == 1
+        else [
+            "odgi",
+            "extract",
+            "-i",
+            ogFile,
+            "-b",
+            bedFile,
+            "-d",
+            "0",
+            "-o",
+            extractOgFile,
+            "-t",
+            threads,
+        ]
+    )
+    run(ODGIExtractCmd)
+
+
 def ogPath(ogFile, csvFile, threads):
     ODGIPathCmd = (
         ["odgi", "paths", "-i", ogFile, "-H"]
