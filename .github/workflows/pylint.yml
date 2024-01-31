@@ -10,12 +10,23 @@ jobs:
         python-version: ["3.8", "3.10"]
     steps:
     - uses: actions/checkout@v4
+    - name: Cache conda
+      uses: actions/cache@v3
+      env:
+        # Increase this value to reset cache if environment.yml has not changed
+        CACHE_NUMBER: 6
+      with:
+        path: ~/conda_pkgs_dir
+        key:
+          mgpgtools-${{ runner.os }}-conda-${{ matrix.python-version }}-${{
+          env.CACHE_NUMBER }}-${{ hashFiles('environment.yml') }}
     - uses: conda-incubator/setup-miniconda@v3
       with:
         python-version: ${{ matrix.python-version }}
         mamba-version: "*"
+        auto-activate-base: false
         channels: bioconda,conda-forge,defaults
-        channel-priority: true
+        channel-priority: false
         activate-environment: mgpg-tools
         environment-file: environment.yml
     - shell: bash -el {0}

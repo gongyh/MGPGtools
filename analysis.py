@@ -6,7 +6,7 @@ from search import Search
 from describe import Describe
 from tree import Tree
 from core import Core
-from exceptions import *
+from exceptions import stat_args_judgment, viz_args_judgment
 
 
 class Analysis(object):
