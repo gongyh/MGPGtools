@@ -5,7 +5,7 @@ Tools for microbial graph pangenomes
 
 ## Installation
 ### Pre-installation
-## Required Python packages
+#### Required Python packages
 + python (>=3.4)
 + prettytable
 + gfapy
@@ -13,7 +13,7 @@ Tools for microbial graph pangenomes
 + toytree
 + pandas
 
-## External requirements
+#### External requirements
 + odgi (0.8.3)
 + seqkit (v2.5.1)
 + clustalW
