@@ -5,15 +5,18 @@ Tools for microbial graph pangenomes
 
 ## Installation
 ### Pre-installation
-+ python3
-+ odgi (0.8.3)
-+ seqkit (v2.5.1)
+## Required Python packages
++ python (>=3.4)
 + prettytable
 + gfapy
 + Biopython
-+ clustalW
 + toytree
 + pandas
+
+## External requirements
++ odgi (0.8.3)
++ seqkit (v2.5.1)
++ clustalW
 
 ### Quick environment setup
 ```
