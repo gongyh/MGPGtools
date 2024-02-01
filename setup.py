@@ -23,5 +23,5 @@ setup(
         "toytree",
         "prettytable",
     ],
-    entry_points={"console_scripts": ["mgpgtools = main:main"]},
+    entry_points={"console_scripts": ["panTools = main:main"]},
 )
