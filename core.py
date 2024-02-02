@@ -45,13 +45,15 @@ class Core(object):
         with open(self.gff, "r") as f:
             new_file = open(os.path.join(bedPath, "genes.bed"), "w")
             lines = f.read().strip().split("\n")
-            # line_count = 1
+            line_count = 1
             for line in lines:
                 if line[0] == "#":
                     continue
                 row = line.strip().split("\t")
                 if row[2] == "gene":
-                    # line_count += 1
+                    line_count += 1
+                    if line_count < 3300:
+                        continue
                     gene = row[8].split(";")[0].replace("ID=gene-", "")
                     tag = self.ref.replace(".", "#") + "#" + row[0]
                     k = tag + ":" + row[3] + "-" + row[4]
@@ -59,8 +61,6 @@ class Core(object):
                     l = int(row[4]) - int(row[3])
                     geneLength[gene] = l
                     new_file.write(tag + "\t" + row[3] + "\t" + row[4] + "\n")
-                    # if line_count == 20:
-                    #     break
             new_file.close()
         return geneTag, geneLength
 

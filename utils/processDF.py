@@ -24,28 +24,30 @@ import pandas as pd
 
 def processDfmerged(df_merged, coreGene):
     result = {}
-    for index, row in df_merged.iterrows():
-        if "GCF" not in row["path.name"] and "GCA" not in row["path.name"]:
-            temp_df = pd.DataFrame(data=row).transpose()
-            other_rows = df_merged[
+    genome_rows = df_merged[
                 df_merged["path.name"].str.contains("GCA|GCF") == True
             ]
-            new_df = pd.DataFrame(other_rows)
-            for column in temp_df.columns[3:]:
-                if row[column] == 0:
-                    new_df.drop(column, axis=1, inplace=True)
-            all_zeros = new_df.iloc[:, 3:].apply(lambda x: (x == 0).all(), axis=1)
-            if all_zeros.all():
-                coreGene["100%"].append(row["path.name"])
-                continue
-            result[row["path.name"]] = {}
-            for i, r in new_df.iterrows():
-                columns = [column for column, value in r.iloc[3:].items() if value == 0]
-                if r.iloc[3] == 0:
-                    columns = columns[1:]
-                if r.iloc[-1] == 0:
-                    columns = columns[:-1]
-                result[row["path.name"]][r["path.name"]] = columns
+    genome_df = pd.DataFrame(genome_rows)
+    gene_rows = df_merged[
+                df_merged["path.name"].str.contains("GCA|GCF") == False
+            ]
+    gene_df = pd.DataFrame(gene_rows)
+    for index, row in gene_df.iterrows():
+        tmp_df = pd.DataFrame(data=row).transpose()
+        column_indexes = tmp_df.columns[3:][tmp_df.iloc[0, 3:] == 1].tolist()
+        column_indexes.insert(0, "path.name")
+        genome_gene_df = genome_df.loc[:, column_indexes]
+        if (genome_gene_df.iloc[:, 1:] == 0).all().all():
+            coreGene["100%"].append(row["path.name"])
+            continue
+        result[row["path.name"]] = {}
+        for i, r in genome_gene_df.iterrows():
+            columns = (list(genome_gene_df.columns[2:][r[2:] == 0]))
+            if r.iloc[1] == 0:
+                columns = columns[1:]
+            if r.iloc[-1] == 0:
+                columns = columns[:-1]
+            result[row["path.name"]][r["path.name"]] = columns
     return result
 
 
