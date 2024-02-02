@@ -27,6 +27,9 @@ requirements:
     - pandas
     - toytree
     - prettytable
+    - odgi
+    - seqkit
+    - clustalw
 
 test:
   imports:
