@@ -33,7 +33,7 @@ test:
     - extern
   commands:
     - pip check
-    - mgpgtools --help
+    - panTools --help
   requires:
     - pip
 
