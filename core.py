@@ -52,8 +52,8 @@ class Core(object):
                 row = line.strip().split("\t")
                 if row[2] == "gene":
                     # line_count += 1
-                    # if line_count < 3300:
-                    #     continue
+                    # if line_count > 20:
+                    #     break
                     gene = row[8].split(";")[0].replace("ID=gene-", "")
                     tag = self.ref.replace(".", "#") + "#" + row[0]
                     k = tag + ":" + row[3] + "-" + row[4]
@@ -106,11 +106,9 @@ class Core(object):
         nodel = nodeLength(gfaFile)
         self.changeGeneTag(geneTag, os.path.join(self.outdir, "tmp"), "genes.tsv")
         df = pd.read_csv(newTsvFile, delimiter="\t")
-        # 子图的矩阵处理，用来判断每个基因在多少个基因组中是存在的，标准是80%序列相同则判定是存在的
-        df_merged = mergeDF(df)
         # results字典中的键是基因的ID，值是一个字典，这个字典保存每个基因组中该基因与参考不一致的node
         # 不在results字典键中的基因是与参考100%相同的基因
-        results = processDfmerged(df_merged, coreGene)
+        results = processDf(df, coreGene)
         absenceGene = {}
         # pool = multiprocessing.Pool(processes = 16)
         # partial_processRow = partial(processRow, df_merged)
@@ -127,7 +125,7 @@ class Core(object):
                 for q in z:
                     length = length + nodel[q[5:]]
                 if length / currentGeneLength > 0.2:
-                    i = i.replace("#", ".")
+                    i = i.split("#")[0]+"."+i.split("#")[1]
                     uniqueNum = uniqueNum + 1
                     if g in absenceGene:
                         absenceGene[g].append(i)

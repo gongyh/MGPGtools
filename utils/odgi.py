@@ -64,7 +64,7 @@ def ogExtractBed(ogFile, extractOgFile, bedFile, threads):
             "-b",
             bedFile,
             "-d",
-            "0",
+            "1000000",
             "-o",
             extractOgFile,
         ]
@@ -77,7 +77,7 @@ def ogExtractBed(ogFile, extractOgFile, bedFile, threads):
             "-b",
             bedFile,
             "-d",
-            "0",
+            "1000000",
             "-o",
             extractOgFile,
             "-t",
