@@ -107,3 +107,33 @@ def ogView(ogFile, gfaFile, threads):
     if_success, stdout, stderr = run(ODGIViewCmd)
     with open(gfaFile, "w") as f:
         f.write(stdout)
+
+
+def ogPosition(ogFile, positionFile, targetPath, threads):
+    ODGIPositionCmd = (
+        [
+            "odgi",
+            "position",
+            "-i",
+            ogFile,
+            "-G",
+            positionFile,
+            "-r",
+            targetPath,
+        ]
+        if threads == 1
+        else [
+            "odgi",
+            "position",
+            "-i",
+            ogFile,
+            "-G",
+            positionFile,
+            "-r",
+            targetPath,
+            "-t",
+            threads,
+        ]
+    )
+    if_success, stdout, stderr = run(ODGIPositionCmd)
+    return if_success, stdout, stderr

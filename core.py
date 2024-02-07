@@ -1,11 +1,11 @@
 import logging
 import os
 
-# import multiprocessing
+import multiprocessing
 import pandas as pd
 from pathlib import Path
 
-# from functools import partial
+from functools import partial
 from utils.meta import *
 from utils.processDF import *
 from utils.common import *
@@ -52,7 +52,7 @@ class Core(object):
                 row = line.strip().split("\t")
                 if row[2] == "gene":
                     # line_count += 1
-                    # if line_count > 20:
+                    # if line_count > 30:
                     #     break
                     gene = row[8].split(";")[0].replace("ID=gene-", "")
                     tag = self.ref.replace(".", "#") + "#" + row[0]
@@ -87,6 +87,8 @@ class Core(object):
         coreGene = {"0-15%": [], "15-95%": [], "95-99%": [], "99-100%": [], "100%": []}
         # 包含所有基因组的列表
         genomeList = getPanTxt(self.database, self.name)
+        # 包含除参考外的所有基因组的列表
+        genomeList_except_ref = [x for x in genomeList if x != self.ref]
         # 利用odgi构建og格式文件，排序，根据bed文件提取子图，显示子图的paths信息，将子图转化为gfa格式文件
         ogFile = os.path.join(self.outdir, "tmp", self.name + ".sorted.og")
         geneTag, genel = self.extract_gff(os.path.join(self.outdir, "tmp"))
@@ -106,31 +108,58 @@ class Core(object):
         nodel = nodeLength(gfaFile)
         self.changeGeneTag(geneTag, os.path.join(self.outdir, "tmp"), "genes.tsv")
         df = pd.read_csv(newTsvFile, delimiter="\t")
+        genome_df = df[df["path.name"].str.contains("GCA|GCF") == True]
+        gene_df = df[df["path.name"].str.contains("GCA|GCF") == False]
         # results字典中的键是基因的ID，值是一个字典，这个字典保存每个基因组中该基因与参考不一致的node
         # 不在results字典键中的基因是与参考100%相同的基因
-        results = processDf(df, coreGene)
+        ref = self.ref.split(".")[0] + self.ref.split(".")[1]
+        # 缺失基因字典
         absenceGene = {}
-        # pool = multiprocessing.Pool(processes = 16)
-        # partial_processRow = partial(processRow, df_merged)
-        # results = results.update(pool.map(partial_processRow, df_merged.iterrows()))
-        # results = pool.map(partial_processRow, df_merged.itertuples(index=False))
-        # print(results)
-        # pool.close()
-        # pool.join()
+        results = {}
+        result = []
+        # 多个进程处理gene_df, 合并结果
+        pool = multiprocessing.Pool(processes=12)
+        partial_processRow = partial(processRow, genome_df=genome_df, ref=ref)
+        for i in range(0, 12):
+            result = pool.map(partial_processRow, gene_df.iterrows())
+            for j in result:
+                results.update(j)
+        pool.close()
+        pool.join()
         for g, v in results.items():
+            if len(v) == 0:
+                # 只有参考基因组上有该基因
+                rate = 1 / self.genomesNum
+                if 0 <= rate < 0.15:
+                    coreGene["0-15%"].append(g)
+                else:
+                    coreGene["15-95%"].append(g)
+                absenceGene[g] = genomeList_except_ref
+                continue
+            geneGenomes = []
             currentGeneLength = genel[g]
             uniqueNum = 0
+            # 遍历每个基因对应的基因组path
             for i, z in v.items():
+                # 当前基因组名
+                i = i.split("#")[0] + "." + i.split("#")[1]
+                if i in geneGenomes:
+                    continue
+                else:
+                    geneGenomes.append(i)
                 length = 0
+                # 当前path对应节点
                 for q in z:
                     length = length + nodel[q[5:]]
-                if length / currentGeneLength > 0.2:
-                    i = i.split("#")[0]+"."+i.split("#")[1]
+                # 相同序列长度小于基因长度的80%则认为该基因在基因组中缺失
+                if length / currentGeneLength < 0.8:
+                    # 缺失的基因组数目
                     uniqueNum = uniqueNum + 1
                     if g in absenceGene:
                         absenceGene[g].append(i)
                     else:
                         absenceGene[g] = [i]
+            # 存在基因的基因组数目占总数的比值
             rate = (self.genomesNum - uniqueNum) / self.genomesNum
             if rate == 1:
                 coreGene["100%"].append(g)
@@ -144,15 +173,20 @@ class Core(object):
                 coreGene["0-15%"].append(g)
         total_genes = len(genel)
         gene_99_100 = len(coreGene["100%"]) + len(coreGene["99-100%"])
+        # 基因矩阵
         geneMatrix = pd.DataFrame(index=geneList, columns=genomeList)
+        # 默认全部是1
         geneMatrix[:] = 1
         geneMatrix = geneMatrix.astype(int)
+        # 根据缺失基因字典将对应值改为0
         for a, b in absenceGene.items():
             for i in b:
                 geneMatrix.at[a, i] = 0
+        # 基因矩阵输出到gene_presence_absence.tsv
         geneMatrix.to_csv(
             os.path.join(self.outdir, "gene_presence_absence.tsv"), sep="\t", index=True
         )
+        # 写入summary_statistics.txt
         with open(os.path.join(self.outdir, "summary_statistics.txt"), "w") as f:
             f.write("Core genes(99% <= strains <= 100%): {}\n".format(gene_99_100))
             f.write(
