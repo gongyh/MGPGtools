@@ -37,6 +37,7 @@ class Core(object):
         )
         self.genomesNum = int(get_info(self.meta, self.name)["genomesNum"])
         self.ref = get_info(self.meta, self.name)["ref"]
+        self.process = 12
 
     # 提取gff文件中的基因起始和终止位置写入bed文件中，并将每个基因长度存入字典
     def extract_gff(self, bedPath):
@@ -45,15 +46,15 @@ class Core(object):
         with open(self.gff, "r") as f:
             new_file = open(os.path.join(bedPath, "genes.bed"), "w")
             lines = f.read().strip().split("\n")
-            # line_count = 1
+            line_count = 1
             for line in lines:
                 if line[0] == "#":
                     continue
                 row = line.strip().split("\t")
                 if row[2] == "gene":
-                    # line_count += 1
-                    # if line_count > 30:
-                    #     break
+                    line_count += 1
+                    if line_count > 200:
+                        break
                     gene = row[8].split(";")[0].replace("ID=gene-", "")
                     tag = self.ref.replace(".", "#") + "#" + row[0]
                     k = tag + ":" + row[3] + "-" + row[4]
@@ -118,12 +119,11 @@ class Core(object):
         results = {}
         result = []
         # 多个进程处理gene_df, 合并结果
-        pool = multiprocessing.Pool(processes=12)
+        pool = multiprocessing.Pool(processes=self.process)
         partial_processRow = partial(processRow, genome_df=genome_df, ref=ref)
-        for i in range(0, 12):
-            result = pool.map(partial_processRow, gene_df.iterrows())
-            for j in result:
-                results.update(j)
+        result = pool.map(partial_processRow, gene_df.iterrows())
+        for j in result:
+            results.update(j)
         pool.close()
         pool.join()
         for g, v in results.items():
