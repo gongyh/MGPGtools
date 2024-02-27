@@ -43,7 +43,6 @@ class Core(object):
         geneTag = {}
         geneLength = {}
         with open(self.gff, "r") as f:
-            new_file = open(os.path.join(bedPath, "genes.bed"), "w")
             lines = f.read().strip().split("\n")
             # line_count = 1
             for line in lines:
@@ -61,8 +60,6 @@ class Core(object):
                     geneTag[k] = gene
                     l = int(row[4]) - int(row[3])
                     geneLength[gene] = l
-                    new_file.write(tag + "\t" + row[3] + "\t" + row[4] + "\n")
-            new_file.close()
         return geneTag, geneLength, genePath
 
     # 更换tsv文件第一列的名称

@@ -4,7 +4,7 @@ import subprocess
 from utils.meta import *
 from utils.exceptions import pathNotFound
 from exceptions import db_path_exists
-from utils.common import run, check_directory, delete_temp_files
+from utils.common import run, check_directory, delete_files
 
 
 class Odgi(object):
@@ -110,5 +110,5 @@ class Odgi(object):
                     )
                     cmd.extend(["-r", path_size])
         is_success, stdout, stderr = run(cmd)
-        delete_temp_files(os.path.join(self.outdir, self.outName + ".sorted.og"))
-        delete_temp_files(os.path.join(self.outdir, self.outName + ".og"))
+        delete_files(os.path.join(self.outdir, self.outName + ".sorted.og"))
+        delete_files(os.path.join(self.outdir, self.outName + ".og"))

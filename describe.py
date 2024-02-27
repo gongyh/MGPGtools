@@ -3,7 +3,7 @@ import os
 import pandas as pd
 from pathlib import Path
 from utils.meta import *
-from utils.common import run, check_directory, delete_temp_files
+from utils.common import run, check_directory, delete_files
 
 
 class Describe(object):

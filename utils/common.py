@@ -161,11 +161,11 @@ def check_directory(directory_path):
         os.makedirs(directory_path)
 
 
-def delete_temp_files(file_path):
-    """Delete temporary files
+def delete_files(file_path):
+    """Delete files
 
     Args:
-        file_path (str): temporary files path
+        file_path (str): files path
     """
     if os.path.exists(file_path):
         os.remove(file_path)

@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 from utils.odgi import *
+from utils.common import delete_temp_files
 from utils.gfa import nodeLength
 
 
@@ -127,4 +128,7 @@ def extractGenesOg(genePath, ogFile, outdir, geneTag, geneLength, genomeListExce
     variant_genome.extend(absence_genome)
     absenceGene = {}
     absenceGene[geneName] = variant_genome
+    delete_files(extractOg)
+    delete_files(extractSortedOg)
+    delete_files(extractGfa)
     return absenceGene
