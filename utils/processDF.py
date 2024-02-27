@@ -1,4 +1,8 @@
+import os
 import pandas as pd
+from utils.odgi import *
+from utils.gfa import nodeLength
+
 
 ## 处理gene_df的每一行，用于多进程
 def processRow(row, genome_df, ref):
@@ -71,3 +75,56 @@ def processDf(df, coreGene):
 #     for i in range(1, len(row_group.columns)):
 #         merged_row.iloc[i] = row_group.iloc[:, i].sum()
 #     return merged_row
+
+
+# 根据每个基因的位置提取子图
+def extractGenesOg(genePath, ogFile, outdir, geneTag, geneLength, genomeListExceptRef):
+    geneName = geneTag[genePath]
+    gene_length = geneLength[geneName]
+    # 每个基因的odgi文件
+    extractOg = os.path.join(outdir, genePath + ".og")
+    extractSortedOg = os.path.join(outdir, genePath + ".sorted.og")
+    extractGfa = os.path.join(outdir, genePath + ".gfa")
+    ogExtract(ogFile, extractOg, genePath, 1)
+    ogSort(extractOg, extractSortedOg, 1)
+    ogView(extractSortedOg, extractGfa, 1)
+    nodeL = nodeLength(extractGfa)
+    if_success, stdout, stderr = ogPath(extractSortedOg, 1)
+    lines = stdout.split("\n")
+    lines.pop()
+    columns = lines[0].split("\t")
+    data = [l.split("\t") for l in lines[1:]]
+    # 每个基因的矩阵
+    df = pd.DataFrame(data, columns=columns)
+    cols_to_extract = df.columns[3:][df.iloc[0, 3:] == "1"].tolist()
+    cols_to_extract.insert(0, "path.name")
+    genomeDF = df[cols_to_extract]
+    # genome_df: 记录矩阵中出现的基因组名称
+    # variant_genome: 这个基因上突变碱基总数大于0.2的基因组
+    genome_df = []
+    variant_genome = []
+    for index, row in genomeDF.iterrows():
+        # 去除参考基因组
+        if geneName in str(row["path.name"]):
+            continue
+        # 基因组名称
+        genomeName = (
+            row["path.name"].split("#")[0] + "." + row["path.name"].split("#")[1]
+        )
+        if genomeName not in genome_df:
+            genome_df.append(genomeName)
+        else:
+            if genomeName not in variant_genome:
+                continue
+        zeroColumns = list(genomeDF.columns[1:][row[1:] == 0])
+        length = 0
+        for n in zeroColumns:
+            length += nodeL[n[5:]]
+        if length / gene_length > 0.2:
+            if genomeName not in variant_genome:
+                variant_genome.append(genomeName)
+    absence_genome = list(set(genomeListExceptRef) - set(genome_df))
+    variant_genome.extend(absence_genome)
+    absenceGene = {}
+    absenceGene[geneName] = variant_genome
+    return absenceGene

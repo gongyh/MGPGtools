@@ -19,18 +19,17 @@ def ogSort(ogFile, ogSortedFile, threads):
     run(ODGIBuildCmd)
 
 
-def ogExtract(ogFile, extractogFile, tPath, tRange, threads):
+def ogExtract(ogFile, extractogFile, tPath, threads):
     ODGIExtractCmd = (
         [
             "odgi",
             "extract",
             "-i",
             ogFile,
-            "-E",
             "-r",
-            tPath + ":" + str(tRange[0]) + "-" + str(tRange[1]),
+            tPath,
             "-d",
-            "0",
+            "1000000",
             "-o",
             extractogFile,
         ]
@@ -40,11 +39,10 @@ def ogExtract(ogFile, extractogFile, tPath, tRange, threads):
             "extract",
             "-i",
             ogFile,
-            "-E",
             "-r",
-            tPath + ":" + str(tRange[0]) + "-" + str(tRange[1]),
+            tPath,
             "-d",
-            "0",
+            "1000000",
             "-o",
             extractogFile,
             "-t",
@@ -87,14 +85,24 @@ def ogExtractBed(ogFile, extractOgFile, bedFile, threads):
     run(ODGIExtractCmd)
 
 
-def ogPath(ogFile, csvFile, threads):
+def ogPath(ogFile, threads):
     ODGIPathCmd = (
         ["odgi", "paths", "-i", ogFile, "-H"]
         if threads == 1
         else ["odgi", "paths", "-i", ogFile, "-H"]
     )
     if_success, stdout, stderr = run(ODGIPathCmd)
-    with open(csvFile, "w") as f:
+    return if_success, stdout, stderr
+
+
+def ogPathTsv(ogFile, tsvFile, threads):
+    ODGIPathCmd = (
+        ["odgi", "paths", "-i", ogFile, "-H"]
+        if threads == 1
+        else ["odgi", "paths", "-i", ogFile, "-H"]
+    )
+    if_success, stdout, stderr = run(ODGIPathCmd)
+    with open(tsvFile, "w") as f:
         f.write(stdout)
 
 

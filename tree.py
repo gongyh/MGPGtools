@@ -105,7 +105,7 @@ class Tree(object):
         ogBuild(self.gfa, ogFile, self.threads)
         ogExtract(ogFile, extractOGFile, refPath, tRange, self.threads)
         ogSort(extractOGFile, extractOgSortedFile, self.threads)
-        ogPath(extractOgSortedFile, csvFile, self.threads)
+        ogPathTsv(extractOgSortedFile, csvFile, self.threads)
         ogView(extractOgSortedFile, geneGfa, self.threads)
         node = nodeStr(geneGfa)
         df = pd.read_csv(csvFile, delimiter="\t")
@@ -161,7 +161,7 @@ class Tree(object):
         ogBuild(altGfa, ogFile, self.threads)
         ogExtract(ogFile, extractOGFile, refPath, tRange, self.threads)
         ogSort(extractOGFile, extractOgSortedFile, self.threads)
-        ogPath(extractOgSortedFile, csvFile, self.threads)
+        ogPathTsv(extractOgSortedFile, csvFile, self.threads)
         ogView(extractOgSortedFile, geneGfa, self.threads)
         sampleList = []
         with open(sampleTxt, "r") as file:
