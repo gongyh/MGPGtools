@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from utils.odgi import *
-from utils.common import delete_temp_files
+from utils.common import delete_files
 from utils.gfa import nodeLength
 
 
