@@ -101,9 +101,9 @@ class Tree(object):
         geneGfa = os.path.join(self.outdir, "tmp", self.name + "." + self.gene + ".gfa")
         refGenome = get_info(self.meta, self.name)["ref"]
         genomeList = getPanTxt(self.database, self.name)
-        refPath = refGenome.replace(".", "#") + "#" + chrom
+        refPath = refGenome.replace(".", "#") + "#" + chrom + str(tRange[0]) + "-" + str(tRange[1])
         ogBuild(self.gfa, ogFile, self.threads)
-        ogExtract(ogFile, extractOGFile, refPath, tRange, self.threads)
+        ogExtract(ogFile, extractOGFile, refPath, self.threads)
         ogSort(extractOGFile, extractOgSortedFile, self.threads)
         ogPathTsv(extractOgSortedFile, csvFile, self.threads)
         ogView(extractOgSortedFile, geneGfa, self.threads)
@@ -157,9 +157,9 @@ class Tree(object):
         csvFile = os.path.join(self.outdir, "tmp", label + "." + self.gene + ".csv")
         geneGfa = os.path.join(self.outdir, "tmp", label + "." + self.gene + ".gfa")
         refGenome = get_info(self.meta, self.name)["ref"]
-        refPath = refGenome.replace(".", "#") + "#" + chrom
+        refPath = refGenome.replace(".", "#") + "#" + chrom + str(tRange[0]) + "-" + str(tRange[1])
         ogBuild(altGfa, ogFile, self.threads)
-        ogExtract(ogFile, extractOGFile, refPath, tRange, self.threads)
+        ogExtract(ogFile, extractOGFile, refPath, self.threads)
         ogSort(extractOGFile, extractOgSortedFile, self.threads)
         ogPathTsv(extractOgSortedFile, csvFile, self.threads)
         ogView(extractOgSortedFile, geneGfa, self.threads)
