@@ -54,16 +54,12 @@ class Core(object):
                     # if line_count > 20:
                     #     break
                     gene = row[8].split(";")[0].replace("ID=", "")
-                    if "GCF_001267405.1_01747" in gene:
-                        tag = self.ref.replace(".", "#") + "#" + row[0]
-                        k = tag + ":" + row[3] + "-" + row[4]
-                        genePath.append(k)
-                        geneTag[k] = gene
-                        l = int(row[4]) - int(row[3])
-                        geneLength[gene] = l
-                        break
-                    else:
-                        continue
+                    tag = self.ref.replace(".", "#") + "#" + row[0]
+                    k = tag + ":" + row[3] + "-" + row[4]
+                    genePath.append(k)
+                    geneTag[k] = gene
+                    l = int(row[4]) - int(row[3])
+                    geneLength[gene] = l
         return geneTag, geneLength, genePath
 
     # 更换tsv文件第一列的名称
