@@ -1,4 +1,5 @@
 import os
+import subprocess
 import pandas as pd
 from utils.odgi import *
 from utils.common import delete_files
@@ -83,11 +84,25 @@ def extractGenesOg(genePath, ogFile, outdir, geneTag, geneLength, genomeListExce
     geneName = geneTag[genePath]
     gene_length = geneLength[geneName]
     # 每个基因的odgi文件
-    extractOg = os.path.join(outdir, genePath + ".og")
     extractSortedOg = os.path.join(outdir, genePath + ".sorted.og")
     extractGfa = os.path.join(outdir, genePath + ".gfa")
-    ogExtract(ogFile, extractOg, genePath, 1)
-    ogSort(extractOg, extractSortedOg, 1)
+    extractCmd = [
+            "odgi",
+            "extract",
+            "-i",
+            ogFile,
+            "-r",
+            genePath,
+            "-d",
+            "3000",
+            "-o",
+            "-",
+        ]
+    extractSortCmd = ["odgi", "sort", "-i", "-", "-o", extractSortedOg]
+    p1 = subprocess.Popen(extractCmd, stdout=subprocess.PIPE)
+    p2 = subprocess.Popen(extractSortCmd, stdin=p1.stdout, stdout=subprocess.PIPE)
+    p1.stdout.close()
+    p2.communicate()
     ogView(extractSortedOg, extractGfa, 1)
     nodeL = nodeLength(extractGfa)
     if_success, stdout, stderr = ogPath(extractSortedOg, 1)
@@ -106,7 +121,7 @@ def extractGenesOg(genePath, ogFile, outdir, geneTag, geneLength, genomeListExce
     variant_genome = []
     for index, row in genomeDF.iterrows():
         # 去除参考基因组
-        if geneName in str(row["path.name"]):
+        if genePath in str(row["path.name"]):
             continue
         # 基因组名称
         genomeName = (
@@ -117,10 +132,12 @@ def extractGenesOg(genePath, ogFile, outdir, geneTag, geneLength, genomeListExce
         else:
             if genomeName not in variant_genome:
                 continue
-        zeroColumns = list(genomeDF.columns[1:][row[1:] == 0])
+        zeroColumns = list(genomeDF.columns[1:][row[1:] == "0"])
         length = 0
         for n in zeroColumns:
             length += nodeL[n[5:]]
+        print(length)
+        print(gene_length)
         if length / gene_length > 0.2:
             if genomeName not in variant_genome:
                 variant_genome.append(genomeName)
@@ -128,7 +145,6 @@ def extractGenesOg(genePath, ogFile, outdir, geneTag, geneLength, genomeListExce
     variant_genome.extend(absence_genome)
     absenceGene = {}
     absenceGene[geneName] = variant_genome
-    delete_files(extractOg)
-    delete_files(extractSortedOg)
-    delete_files(extractGfa)
+    # delete_files(extractSortedOg)
+    # delete_files(extractGfa)
     return absenceGene

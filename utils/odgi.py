@@ -29,7 +29,7 @@ def ogExtract(ogFile, extractogFile, tPath, threads):
             "-r",
             tPath,
             "-d",
-            "1000000",
+            "3000",
             "-o",
             extractogFile,
         ]
@@ -42,7 +42,7 @@ def ogExtract(ogFile, extractogFile, tPath, threads):
             "-r",
             tPath,
             "-d",
-            "1000000",
+            "3000",
             "-o",
             extractogFile,
             "-t",

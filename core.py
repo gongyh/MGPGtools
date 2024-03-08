@@ -53,13 +53,17 @@ class Core(object):
                     # line_count += 1
                     # if line_count > 20:
                     #     break
-                    gene = row[8].split(";")[0].replace("ID=gene-", "")
-                    tag = self.ref.replace(".", "#") + "#" + row[0]
-                    k = tag + ":" + row[3] + "-" + row[4]
-                    genePath.append(k)
-                    geneTag[k] = gene
-                    l = int(row[4]) - int(row[3])
-                    geneLength[gene] = l
+                    gene = row[8].split(";")[0].replace("ID=", "")
+                    if "GCF_001267405.1_01747" in gene:
+                        tag = self.ref.replace(".", "#") + "#" + row[0]
+                        k = tag + ":" + row[3] + "-" + row[4]
+                        genePath.append(k)
+                        geneTag[k] = gene
+                        l = int(row[4]) - int(row[3])
+                        geneLength[gene] = l
+                        break
+                    else:
+                        continue
         return geneTag, geneLength, genePath
 
     # 更换tsv文件第一列的名称
@@ -122,7 +126,8 @@ class Core(object):
         geneMatrix = geneMatrix.astype(int)
         # 根据缺失基因字典将对应值改为0
         for a, b in absenceGene.items():
-            l = len(b)
+            # 总基因组数目减去缺失基因组数目，存在这个基因的基因组数
+            l = genomeNum - len(b)
             if 0 <= l / genomeNum < 0.15:
                 coreGene["0-15%"].append(a)
             if 0.15 <= l / genomeNum < 0.95:

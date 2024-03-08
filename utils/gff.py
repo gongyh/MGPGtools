@@ -21,7 +21,7 @@ def extract_gene(database, name):
             if line[0] == "#":
                 continue
             row = line.strip().split("\t")
-            if row[2] == "gene":
+            if row[2] == "CDS":
                 if row[0] not in chrom_gene_annotation:
                     chrom_gene_annotation[row[0]] = {}
                 start = row[3]
