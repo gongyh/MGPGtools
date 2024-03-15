@@ -123,12 +123,21 @@ def __outdir(group, required):
     )
 
 
+def __fasta(group):
+    group.add_argument(
+        "-fasta",
+        type=str,
+        default=None,
+        help="fasta file",
+    )
+
+
 def __gfa(group):
     group.add_argument(
         "-gfa",
         type=str,
         default=None,
-        help="gfa files",
+        help="gfa file",
     )
 
 
@@ -252,6 +261,7 @@ def get_main_parser():
             __name(grp, required=True)
             __outdir(grp, required=True)
         with arg_group(parser, "optional arguments") as grp:
+            __fasta(grp)
             __threads(grp)
             __help(grp)
     return main_parser

@@ -97,18 +97,44 @@ class Tree(object):
         extractOgSortedFile = os.path.join(
             self.outdir, "tmp", self.name + "." + self.gene + ".sorted.og"
         )
-        csvFile = os.path.join(self.outdir, "tmp", self.name + "." + self.gene + ".csv")
         geneGfa = os.path.join(self.outdir, "tmp", self.name + "." + self.gene + ".gfa")
         refGenome = get_info(self.meta, self.name)["ref"]
         genomeList = getPanTxt(self.database, self.name)
-        refPath = refGenome.replace(".", "#") + "#" + chrom + str(tRange[0]) + "-" + str(tRange[1])
+        refPath = (
+            refGenome.replace(".", "#")
+            + "#"
+            + chrom
+            + str(tRange[0])
+            + "-"
+            + str(tRange[1])
+        )
         ogBuild(self.gfa, ogFile, self.threads)
-        ogExtract(ogFile, extractOGFile, refPath, self.threads)
-        ogSort(extractOGFile, extractOgSortedFile, self.threads)
-        ogPathTsv(extractOgSortedFile, csvFile, self.threads)
+        extractCmd = [
+            "odgi",
+            "extract",
+            "-i",
+            ogFile,
+            "-r",
+            refPath,
+            "-d",
+            "3000",
+            "-o",
+            "-",
+        ]
+        extractSortCmd = ["odgi", "sort", "-i", "-", "-o", extractOgSortedFile]
+        p1 = subprocess.Popen(extractCmd, stdout=subprocess.PIPE)
+        p2 = subprocess.Popen(extractSortCmd, stdin=p1.stdout, stdout=subprocess.PIPE)
+        p1.stdout.close()
+        p2.communicate()
         ogView(extractOgSortedFile, geneGfa, self.threads)
         node = nodeStr(geneGfa)
-        df = pd.read_csv(csvFile, delimiter="\t")
+        if_success, stdout, stderr = ogPath(extractOgSortedFile, 1)
+        lines = stdout.split("\n")
+        lines.pop()
+        columns = lines[0].split("\t")
+        data = [l.split("\t") for l in lines[1:]]
+        # 每个基因的矩阵
+        df = pd.DataFrame(data, columns=columns)
         # df_merged = df.groupby(df.iloc[:, 0].str.split('#').str[0]).apply(self.merge_rows).reset_index(drop=True)
         gene_ratio = {}
         uniqueNodes = {}
@@ -157,7 +183,14 @@ class Tree(object):
         csvFile = os.path.join(self.outdir, "tmp", label + "." + self.gene + ".csv")
         geneGfa = os.path.join(self.outdir, "tmp", label + "." + self.gene + ".gfa")
         refGenome = get_info(self.meta, self.name)["ref"]
-        refPath = refGenome.replace(".", "#") + "#" + chrom + str(tRange[0]) + "-" + str(tRange[1])
+        refPath = (
+            refGenome.replace(".", "#")
+            + "#"
+            + chrom
+            + str(tRange[0])
+            + "-"
+            + str(tRange[1])
+        )
         ogBuild(altGfa, ogFile, self.threads)
         ogExtract(ogFile, extractOGFile, refPath, self.threads)
         ogSort(extractOGFile, extractOgSortedFile, self.threads)

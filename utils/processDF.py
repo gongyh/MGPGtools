@@ -87,17 +87,17 @@ def extractGenesOg(genePath, ogFile, outdir, geneTag, geneLength, genomeListExce
     extractSortedOg = os.path.join(outdir, genePath + ".sorted.og")
     extractGfa = os.path.join(outdir, genePath + ".gfa")
     extractCmd = [
-            "odgi",
-            "extract",
-            "-i",
-            ogFile,
-            "-r",
-            genePath,
-            "-d",
-            "3000",
-            "-o",
-            "-",
-        ]
+        "odgi",
+        "extract",
+        "-i",
+        ogFile,
+        "-r",
+        genePath,
+        "-d",
+        "3000",
+        "-o",
+        "-",
+    ]
     extractSortCmd = ["odgi", "sort", "-i", "-", "-o", extractSortedOg]
     p1 = subprocess.Popen(extractCmd, stdout=subprocess.PIPE)
     p2 = subprocess.Popen(extractSortCmd, stdin=p1.stdout, stdout=subprocess.PIPE)
@@ -136,8 +136,6 @@ def extractGenesOg(genePath, ogFile, outdir, geneTag, geneLength, genomeListExce
         length = 0
         for n in zeroColumns:
             length += nodeL[n[5:]]
-        print(length)
-        print(gene_length)
         if length / gene_length > 0.2:
             if genomeName not in variant_genome:
                 variant_genome.append(genomeName)
