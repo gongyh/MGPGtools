@@ -3,11 +3,13 @@ import os
 import pandas as pd
 import toytree
 import toyplot.svg
-from utils.gff import *
+import multiprocessing
+from functools import partial
 from utils.odgi import *
 from utils.meta import *
 from utils.common import *
-from utils.gfa import nodeStr
+from utils.sequence import nucl_complement
+from utils.gfa import gfa_parse_link_path, nodeStr
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio import SeqIO
@@ -19,9 +21,13 @@ class Tree(object):
         self.database = options.db
         self.name = options.name
         self.outdir = options.outdir
-        self.gene = options.gene
+        if options.gene is not None:
+            self.gene = options.gene
+        if options.genesFile is not None:
+            self.genesFile = options.genesFile
         self.threads = 1 if options.threads is not None else options.threads
         self.meta = os.path.join(self.database, "metadata", "Metadata.tsv")
+        self.ref = get_info(self.meta, self.name)["ref"]
         self.gfa = os.path.join(
             self.database,
             "databases",
@@ -29,19 +35,23 @@ class Tree(object):
             get_info(self.meta, self.name)["class"],
             self.name + ".gfa",
         )
-
-    def drawTree(self):
-        refSeq, records = self.getGeneRecord()
-        SeqIO.write(
-            records, os.path.join(self.outdir, "tmp", self.gene + ".fasta"), "fasta"
+        self.gff = os.path.join(
+            self.database,
+            "databases",
+            "gff",
+            get_info(self.meta, self.name)["class"],
+            get_info(self.meta, self.name)["ref"] + ".gff",
         )
-        cmds = [
-            "clustalw2",
-            "-INFILE=" + os.path.join(self.outdir, "tmp", self.gene + ".fasta"),
-            "-ALIGN",
-            "-TYPE=DNA",
-        ]
-        if_success, stdout, stderr = run(cmds)
+        self.process = 16
+
+    def drawGeneTree(self):
+        refGenome = get_info(self.meta, self.name)["ref"]
+        ogFile = os.path.join(self.outdir, "tmp", self.name + ".sorted.og")
+        tmp = os.path.join(self.outdir, "tmp")
+        check_directory(tmp)
+        ogBuild(self.gfa, ogFile, self.threads)
+        gene_tag = self.extract_gff(list(self.gene))
+        self.getGeneRecord(tmp, ogFile, gene_tag, refGenome, list(self.gene))
         with open(os.path.join(self.outdir, "tmp", self.gene + ".dnd"), "r") as file:
             treNewick = file.read()
             treNewick = treNewick.replace("\n", "")
@@ -52,29 +62,46 @@ class Tree(object):
         }
         canvas, axes, mark = tre.draw(width=400, height=300, **style)
         toyplot.svg.render(canvas, os.path.join(self.outdir, self.gene + ".svg"))
-        delete_temp_dir(os.path.join(self.outdir, "tmp"))
+        # delete_temp_dir(os.path.join(self.outdir, "tmp"))
 
-    def drawTreeWithGfa(self, altGfa, sampleTxt, label):
-        altRecords, isAltGenome, sampleList = self.getAltGeneRecords(
-            altGfa, sampleTxt, label
+    def drawSpeciesTree(self):
+        refGenome = get_info(self.meta, self.name)["ref"]
+        ogFile = os.path.join(self.outdir, "tmp", self.name + ".sorted.og")
+        tmp = os.path.join(self.outdir, "tmp")
+        check_directory(tmp)
+        ogBuild(self.gfa, ogFile, self.threads)
+        genesList = []
+        with open(self.genesFile, "r") as f:
+            genesList = f.read().strip().split("\n")
+        gene_tag = self.extract_gff(genesList)
+        pool = multiprocessing.Pool(processes=self.process)
+        partial_getGeneRecord = partial(
+            self.getGeneRecord,
+            outdir=tmp,
+            ogFile=ogFile,
+            geneTag=gene_tag,
+            refGenome=refGenome
         )
-        refSeq, records = self.getGeneRecord()
-        if not isAltGenome:
-            for i in sampleList:
-                altRecords.append(SeqRecord(Seq(refSeq), id=i, description=self.name))
-        records.extend(altRecords)
-        SeqIO.write(
-            records, os.path.join(self.outdir, "tmp", self.gene + ".fasta"), "fasta"
-        )
-        cmds = [
-            "clustalw2",
-            "-INFILE=" + os.path.join(self.outdir, "tmp", self.gene + ".fasta"),
-            "-ALIGN",
-            "-TYPE=DNA",
+        pool.map(partial_getGeneRecord, genesList)
+        with open(os.path.join(tmp, "total.dnd"), "w") as ftotal:
+            ftotal.write("(")
+            out_str = ""
+            for i in genesList:
+                with open(os.path.join(tmp, i + ".dnd"), "r") as fsingle:
+                    fstr = fsingle.read().replace(";", ",")
+                    out_str += fstr
+            out_s = out_str.rstrip().rstrip(",")
+            ftotal.write(out_s + ");")
+        concatTreeCmd = [
+            "astral",
+            "-i",
+            os.path.join(tmp, "total.dnd"),
+            "-o",
+            os.path.join(tmp, "species.dnd"),
         ]
-        if_success, stdout, stderr = run(cmds)
-        with open(os.path.join(self.outdir, "tmp", self.gene + ".dnd"), "r") as file:
-            treNewick = file.read()
+        run(concatTreeCmd)
+        with open(os.path.join(tmp, "species.dnd"), "r") as fdnd:
+            treNewick = fdnd.read()
             treNewick = treNewick.replace("\n", "")
         tre = toytree.tree(treNewick, tree_format=0)
         style = {
@@ -82,33 +109,17 @@ class Tree(object):
             "tip_labels_style": {"font-size": "9px"},
         }
         canvas, axes, mark = tre.draw(width=400, height=300, **style)
-        toyplot.svg.render(
-            canvas, os.path.join(self.outdir, label + "." + self.gene + ".svg")
-        )
-        delete_temp_dir(os.path.join(self.outdir, "tmp"))
+        toyplot.svg.render(canvas, os.path.join(self.outdir, "speciesTree.svg"))
 
-    def getGeneRecord(self):
-        tRange, chrom = self.getGeneRange()
-        check_directory(os.path.join(self.outdir, "tmp"))
-        ogFile = os.path.join(self.outdir, "tmp", self.name + ".sorted.og")
-        extractOGFile = os.path.join(
-            self.outdir, "tmp", self.name + "." + self.gene + ".og"
-        )
+    def getGeneRecord(self, gene, outdir, ogFile, geneTag, refGenome):
+        chrom = geneTag[gene][0]
+        start = geneTag[gene][1]
+        end = geneTag[gene][2]
         extractOgSortedFile = os.path.join(
-            self.outdir, "tmp", self.name + "." + self.gene + ".sorted.og"
+            outdir, self.name + "." + gene + ".sorted.og"
         )
-        geneGfa = os.path.join(self.outdir, "tmp", self.name + "." + self.gene + ".gfa")
-        refGenome = get_info(self.meta, self.name)["ref"]
-        genomeList = getPanTxt(self.database, self.name)
-        refPath = (
-            refGenome.replace(".", "#")
-            + "#"
-            + chrom
-            + str(tRange[0])
-            + "-"
-            + str(tRange[1])
-        )
-        ogBuild(self.gfa, ogFile, self.threads)
+        geneGfa = os.path.join(outdir, self.name + "." + gene + ".gfa")
+        refPath = chrom + ":" + start + "-" + end
         extractCmd = [
             "odgi",
             "extract",
@@ -127,118 +138,48 @@ class Tree(object):
         p1.stdout.close()
         p2.communicate()
         ogView(extractOgSortedFile, geneGfa, self.threads)
-        node = nodeStr(geneGfa)
-        if_success, stdout, stderr = ogPath(extractOgSortedFile, 1)
-        lines = stdout.split("\n")
-        lines.pop()
-        columns = lines[0].split("\t")
-        data = [l.split("\t") for l in lines[1:]]
-        # 每个基因的矩阵
-        df = pd.DataFrame(data, columns=columns)
-        # df_merged = df.groupby(df.iloc[:, 0].str.split('#').str[0]).apply(self.merge_rows).reset_index(drop=True)
-        gene_ratio = {}
-        uniqueNodes = {}
-        commonNodes = {}
+        gfa_node, gfa_path = gfa_parse_link_path(geneGfa)
+        genome_path_list = []
         records = []
         refSeq = ""
-        for i, r in df.iterrows():
-            uniqueCol = [column for column, value in r.iloc[3:].items() if value == 0]
-            commonCol = [column for column, value in r.iloc[3:].items() if value == 1]
-            tag = r["path.name"].split("#")[0] + "." + r["path.name"].split("#")[1]
-            uniqueNodes[tag] = uniqueCol
-            commonNodes[tag] = commonCol
-        for k, v in uniqueNodes.items():
-            if k == refGenome:
+        for chrom, p in gfa_path.items():
+            genomeName = chrom.split("#")[0] + "." + chrom.split("#")[1]
+            if genomeName in genome_path_list:
                 continue
-            length = 0
-            for z in v:
-                length = length + len(node[z[5:]])
-            rate = length / (int(tRange[1]) - int(tRange[0]))
-            gene_ratio[k] = 1 - rate
-        for x, y in commonNodes.items():
-            id = x
             seq = ""
-            for z in y:
-                seq += node[z[5:]]
-            if x == refGenome:
+            for i in p["path"]:
+                nodeName = "node_" + i[:-1]
+                if i[-1] == "+":
+                    seq += gfa_node[nodeName]
+                if i[-1] == "-":
+                    seq += nucl_complement(gfa_node[nodeName])
+            if p["tag"] == "reverse":
+                seq = nucl_complement(seq)
+            if genomeName == refGenome:
                 refSeq = seq
-            seqRecord = SeqRecord(Seq(seq), id=id, description=self.name)
+            seqRecord = SeqRecord(Seq(seq), id=genomeName, description=self.name)
             records.append(seqRecord)
-        otherGenome = [item for item in genomeList if item not in commonNodes.keys()]
-        for a in otherGenome:
-            seqRecord = SeqRecord(Seq(refSeq), id=a, description=self.name)
-            records.append(seqRecord)
-        return refSeq, records
+            genome_path_list.append(genomeName)
+        SeqIO.write(records, os.path.join(outdir, gene + ".fasta"), "fasta")
+        cmds = [
+            "clustalw2",
+            "-INFILE=" + os.path.join(outdir, gene + ".fasta"),
+            "-ALIGN",
+            "-TYPE=DNA",
+        ]
+        run(cmds)
 
-    def getAltGeneRecords(self, altGfa, sampleTxt, label):
-        tRange, chrom = self.getGeneRange()
-        check_directory(os.path.join(self.outdir, "tmp"))
-        ogFile = os.path.join(self.outdir, "tmp", label + ".sorted.og")
-        extractOGFile = os.path.join(
-            self.outdir, "tmp", label + "." + self.gene + ".og"
-        )
-        extractOgSortedFile = os.path.join(
-            self.outdir, "tmp", label + "." + self.gene + ".sorted.og"
-        )
-        csvFile = os.path.join(self.outdir, "tmp", label + "." + self.gene + ".csv")
-        geneGfa = os.path.join(self.outdir, "tmp", label + "." + self.gene + ".gfa")
-        refGenome = get_info(self.meta, self.name)["ref"]
-        refPath = (
-            refGenome.replace(".", "#")
-            + "#"
-            + chrom
-            + str(tRange[0])
-            + "-"
-            + str(tRange[1])
-        )
-        ogBuild(altGfa, ogFile, self.threads)
-        ogExtract(ogFile, extractOGFile, refPath, self.threads)
-        ogSort(extractOGFile, extractOgSortedFile, self.threads)
-        ogPathTsv(extractOgSortedFile, csvFile, self.threads)
-        ogView(extractOgSortedFile, geneGfa, self.threads)
-        sampleList = []
-        with open(sampleTxt, "r") as file:
-            for line in file.readlines():
-                sampleList.append(line.strip())
-        node = nodeStr(geneGfa)
-        df = pd.read_csv(csvFile, delimiter="\t")
-        # df_merged = df.groupby(df.iloc[:, 0].str.split('#').str[0]).apply(self.merge_rows).reset_index(drop=True)
-        commonNodes = {}
-        records = []
-        refSeq = ""
-        for i, r in df.iterrows():
-            commonCol = [column for column, value in r.iloc[3:].items() if value == 1]
-            if "#" in r["path.name"]:
-                tag = r["path.name"].split("#")[0] + "." + r["path.name"].split("#")[1]
-            else:
-                tag = r["path.name"]
-            commonNodes[tag] = commonCol
-        if len(commonNodes) == 1 and next(iter(commonNodes)) == refGenome:
-            sampleList.remove(refGenome)
-            return records, False, sampleList
-        else:
-            for x, y in commonNodes.items():
-                id = x
-                seq = ""
-                for z in y:
-                    seq += node[z[5:]]
-                if x == refGenome:
-                    refSeq = seq
+    def extract_gff(self, genes):
+        geneTag = {}
+        with open(self.gff, "r") as f:
+            lines = f.read().strip().split("\n")
+            for line in lines:
+                if line[0] == "#":
                     continue
-                seqRecord = SeqRecord(Seq(seq), id=id, description=self.name)
-                records.append(seqRecord)
-            otherGenome = [
-                item for item in sampleList if item not in commonNodes.keys()
-            ]
-            for a in otherGenome:
-                seqRecord = SeqRecord(Seq(refSeq), id=a, description=self.name)
-                records.append(seqRecord)
-            return records, True, []
-
-    def getGeneRange(self):
-        G = extract_gene(self.database, self.name)
-        for i, j in G.items():
-            if self.gene in j:
-                tRange = j[self.gene]
-                chrom = i
-        return tRange, chrom
+                row = line.strip().split("\t")
+                if row[2] == "CDS":
+                    gene = row[8].split(";")[0].replace("ID=", "")
+                    if gene in genes:
+                        tag = self.ref.replace(".", "#") + "#" + row[0]
+                        geneTag[gene] = [tag, row[3], row[4]]
+        return geneTag

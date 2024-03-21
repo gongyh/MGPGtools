@@ -36,13 +36,21 @@ def __rank(group, required):
     )
 
 
-def __treeGene(group, required):
+def __treeGene(group):
     group.add_argument(
         "-gene",
         type=str,
         default=None,
-        required=required,
         help="Gene information",
+    )
+
+
+def __treeGenesFile(group):
+    group.add_argument(
+        "-genesFile",
+        type=str,
+        default=None,
+        help="A file contains genes information",
     )
 
 
@@ -242,10 +250,11 @@ def get_main_parser():
         with arg_group(parser, "required named arguments") as grp:
             __db(grp, required=True)
             __name(grp, required=True)
-            __treeGene(grp, required=True)
             __outdir(grp, required=True)
         with arg_group(parser, "optional arguments") as grp:
             __threads(grp)
+            __treeGene(grp)
+            __treeGenesFile(grp)
             __gfa(grp)
             __label(grp)
             __sampleTxt(grp)

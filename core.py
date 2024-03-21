@@ -84,7 +84,14 @@ class Core(object):
                     gene = row[8].split(";")[0].replace("ID=", "")
                     if gene in coreGenes:
                         fcoregff.write(line + "\n")
-        extractCoreGenesCmd = ["gffread", coregff, "-g", self.ref_genome, "-x", corefasta]
+        extractCoreGenesCmd = [
+            "gffread",
+            coregff,
+            "-g",
+            self.ref_genome,
+            "-x",
+            corefasta,
+        ]
         isSuccess, stdout, stderr = run(extractCoreGenesCmd)
 
     def filtBlastGene(self, blastResult, geneLength):
@@ -287,5 +294,9 @@ class Core(object):
         ]
         run(blastCmd)
         assemblGenes = self.filtBlastGene(blastResult, geneL)
-        print("Core Gene Completeness: {}\n".format(len(assemblGenes) / len(coreGene["100%"])))
+        print(
+            "Core Gene Completeness: {}\n".format(
+                len(assemblGenes) / len(coreGene["100%"])
+            )
+        )
         # delete_temp_dir(os.path.join(self.outdir, "tmp"))

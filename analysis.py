@@ -41,7 +41,7 @@ class Analysis(object):
 
     def tree(self, options):
         tree = Tree(options)
-        if options.gfa:
-            tree.drawTreeWithGfa(options.gfa, options.sampleTxt, options.label)
-        else:
-            tree.drawTree()
+        if options.gene:
+            tree.drawGeneTree()
+        if options.genesFile:
+            tree.drawSpeciesTree()
