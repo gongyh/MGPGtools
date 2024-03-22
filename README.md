@@ -12,11 +12,14 @@ Tools for microbial graph pangenomes
 + Biopython
 + toytree
 + pandas
++ numpy
 
 #### External requirements
 + odgi (0.8.3)
 + seqkit (v2.5.1)
-+ clustalW
++ clustalW (v2.1)
++ aster (v1.16)
++ gffread (v0.12.7)
 
 ### Quick environment setup
 ```
