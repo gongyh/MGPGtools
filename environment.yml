@@ -6,13 +6,13 @@ dependencies:
   - conda-forge::python=3
   - bioconda::odgi=0.8.3
   - bioconda::seqkit=2.5.1
-  - bioconda::gfapy=1.2.3
-  - bioconda::clustalw=2.1
-  - bioconda::gffread=0.12.7
-  - bioconda::aster=1.16
-  - conda-forge::biopython=1.78
-  - conda-forge::toytree=2.0.5
-  - conda-forge::pandas=2.2.1
-  - conda-forge::numpy=1.26.4
-  - conda-forge::prettytable=3.10.0
+  - bioconda::gfapy
+  - bioconda::clustalw
+  - bioconda::gffread
+  - bioconda::aster
+  - conda-forge::biopython
+  - conda-forge::toytree
+  - conda-forge::pandas
+  - conda-forge::numpy
+  - conda-forge::prettytable
   
