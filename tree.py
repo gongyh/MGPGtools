@@ -83,24 +83,20 @@ class Tree(object):
             refGenome=refGenome
         )
         pool.map(partial_getGeneRecord, genesList)
-        with open(os.path.join(tmp, "total.dnd"), "w") as ftotal:
-            ftotal.write("(")
-            out_str = ""
+        with open(os.path.join(tmp, "total.nw"), "w") as totalnw:
             for i in genesList:
-                with open(os.path.join(tmp, i + ".dnd"), "r") as fsingle:
-                    fstr = fsingle.read().replace(";", ",")
-                    out_str += fstr
-            out_s = out_str.rstrip().rstrip(",")
-            ftotal.write(out_s + ");")
+                with open(os.path.join(tmp, i + ".dnd"), "r") as singlenw:
+                    fstr = singlenw.read()
+                    totalnw.write(fstr)
         concatTreeCmd = [
             "astral",
             "-i",
-            os.path.join(tmp, "total.dnd"),
+            os.path.join(tmp, "total.nw"),
             "-o",
-            os.path.join(tmp, "species.dnd"),
+            os.path.join(tmp, "species.nw"),
         ]
         run(concatTreeCmd)
-        with open(os.path.join(tmp, "species.dnd"), "r") as fdnd:
+        with open(os.path.join(tmp, "species.nw"), "r") as fdnd:
             treNewick = fdnd.read()
             treNewick = treNewick.replace("\n", "")
         tre = toytree.tree(treNewick, tree_format=0)
