@@ -4,7 +4,7 @@ channels:
   - bioconda
 dependencies:
   - conda-forge::python=3
-  - bioconda::odgi=0.8.3
+  - bioconda::odgi=0.8.4
   - bioconda::seqkit=2.5.1
   - bioconda::gfapy
   - bioconda::clustalw

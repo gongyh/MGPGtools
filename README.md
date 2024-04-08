@@ -34,15 +34,15 @@ python main.py -h
     usage: python main.py stat -db DATABASE -rank [domain|phylum|class|order|family|genus] -name NAME -outdir OUTDIR [-h Help]
            eg. python main.py stat -db path_to_database -rank order -name Lactobacillales -outdir path_to_dir
            output: Return a TSV file containing all metagenomes from the pan-genome database with a specific rank and specific genus.
-          | Domain | Phylum | Class | Order | Family | Genus | Nodes | Links | No.genomes | Ref |
-          |---------|---------|---------|---------|---------|---------|---------|---------|---------|---------|
-          | Bacteria | Bacillota | Bacilli | Lactobacillales | Carnobacteriaceae | Alkalibacter | 5915 | 7643 | 16 | GCA_003446375.1 |
+          |  Domain  |   Phylum  |  Class  |      Order      |       Family      |     Genus    | Nodes | Links | genomes |       Ref       |
+          | ---------| ----------|---------|-----------------|-------------------|--------------|-------|-------|---------|-----------------|
+          | Bacteria | Bacillota | Bacilli | Lactobacillales | Carnobacteriaceae | Alkalibacter |  5915 |  7643 |    16   | GCA_003446375.1 |
 
            python main.py search -db DATABASE -name NAME [-gene|-cds] [-h]
            eg. python main.py search -db path_to_database -name Listeria [-gene LSE_RS00145] [-cds WP_003721652.1]
            output: Return a table containing basic information of metagenomes from a specific genus in the pan-genome database, along with information on specific genes/CDS.
-          | name | ref | chromosomes | size | path | start | end |
-          |-------|-------|-------|-------|-------|-------|-------|
+          |   name   |       ref       | chromosomes |   size  |            path             | start |  end  |
+          |----------|-----------------|-------------|---------|-----------------------------|-------|-------|
           | Listeria | GCF_000027145.1 | NC_013891.1 | 2797636 | GCF_000027145#1#NC_013891.1 | 31414 | 31752 |
 
            python main.py viz -db DATABASE -name NAME -outdir OUTDIR [-outName OUTNAME] [-t Thread] [-x WIDTH] [-y HEIGTH] [-r PATH_RANGE] [-h Help]
