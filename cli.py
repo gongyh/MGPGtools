@@ -140,12 +140,12 @@ def __fasta(group):
     )
 
 
-def __gfa(group):
+def __coreGenes(group):
     group.add_argument(
-        "-gfa",
+        "-coreGenes",
         type=str,
         default=None,
-        help="gfa file",
+        help="core genes file",
     )
 
 
@@ -155,15 +155,6 @@ def __label(group):
         type=str,
         default=None,
         help="label of mapped sample",
-    )
-
-
-def __sampleTxt(group):
-    group.add_argument(
-        "-sampleTxt",
-        type=str,
-        default=None,
-        help="Txt of sample",
     )
 
 
@@ -255,9 +246,7 @@ def get_main_parser():
             __threads(grp)
             __treeGene(grp)
             __treeGenesFile(grp)
-            __gfa(grp)
             __label(grp)
-            __sampleTxt(grp)
             __help(grp)
 
     with subparser(
@@ -271,6 +260,7 @@ def get_main_parser():
             __outdir(grp, required=True)
         with arg_group(parser, "optional arguments") as grp:
             __fasta(grp)
+            __coreGenes(grp)
             __threads(grp)
             __help(grp)
     return main_parser

@@ -80,7 +80,7 @@ class Tree(object):
             outdir=tmp,
             ogFile=ogFile,
             geneTag=gene_tag,
-            refGenome=refGenome
+            refGenome=refGenome,
         )
         pool.map(partial_getGeneRecord, genesList)
         with open(os.path.join(tmp, "total.nw"), "w") as totalnw:

@@ -43,6 +43,7 @@ class Core(object):
             get_info(self.meta, self.name)["ref"] + "_genomic.fna",
         )
         self.genomesNum = int(get_info(self.meta, self.name)["genomesNum"])
+        self.coreGenes = options.coreGenes
         self.process = 16
 
     # 提取gff文件中的基因起始和终止位置,基因ID, 以及用于下一步分析的基因路径字符串
@@ -262,7 +263,15 @@ class Core(object):
                 "Cloud genes(0% <= strains < 15%): {}\n".format(len(coreGene["0-15%"]))
             )
             f.write("Total genes: {}\n".format(totalGenesNum))
-        self.coreGene_fasta(coreGene["100%"], tmp)
+        delete_temp_dir(os.path.join(self.outdir, "tmp"))
+
+    def contigCompleteness(self):
+        with open(self.coreGenes, "r") as f:
+            coreGenes = f.read().strip().split("\n")
+        tmp = os.path.join(self.outdir, "tmp")
+        check_directory(tmp)
+        self.coreGene_fasta(coreGenes, tmp)
+        geneTag, geneL, genePath = self.extract_gff()
         blastIndex = os.path.join(tmp, "index")
         makeBlastDBCmd = [
             "makeblastdb",
@@ -294,9 +303,11 @@ class Core(object):
         ]
         run(blastCmd)
         assemblGenes = self.filtBlastGene(blastResult, geneL)
-        print(
-            "Core Gene Completeness: {}\n".format(
-                len(assemblGenes) / len(coreGene["100%"])
+        outputFile = os.path.join(self.outdir, "completeness.txt")
+        with open(outputFile, "w") as f:
+            f.write(
+                "Core Gene Completeness: {}\n".format(
+                    len(assemblGenes) / len(coreGenes)
+                )
             )
-        )
-        # delete_temp_dir(os.path.join(self.outdir, "tmp"))
+        delete_temp_dir(os.path.join(self.outdir, "tmp"))

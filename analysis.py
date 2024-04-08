@@ -37,7 +37,10 @@ class Analysis(object):
 
     def core(self, options):
         core = Core(options)
-        core.staticCoreGene()
+        if options.coreGenes and options.fasta:
+            core.contigCompleteness()
+        else:
+            core.staticCoreGene()
 
     def tree(self, options):
         tree = Tree(options)
