@@ -246,6 +246,7 @@ def get_main_parser():
             __threads(grp)
             __treeGene(grp)
             __treeGenesFile(grp)
+            __fasta(grp)
             __label(grp)
             __help(grp)
 

@@ -10,6 +10,7 @@ dependencies:
   - bioconda::clustalw
   - bioconda::gffread
   - bioconda::aster
+  - bioconda::blast
   - conda-forge::biopython
   - conda-forge::toytree
   - conda-forge::pandas

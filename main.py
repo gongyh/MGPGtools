@@ -9,15 +9,15 @@ def print_help():
     print(
         """\
 
-              ...::: panTools v%s:::...
+              ...::: MGPGtools v%s:::...
 
   Methods:
-    describe -> basic information of gfa files
+    describe -> basic information of gfa file
     stat -> statistic information of pangenome
     viz -> pangenome visualization
-    search -> search pangenome information include: ref_genome, chromosome, size...
+    search -> search pangenome information include: ref_genome, chromosome, size
 
-  Use: panTools <command> -h for command specific help
+  Use: MGPGtools <command> -h for command specific help
     """
         % __version__
     )
@@ -29,7 +29,7 @@ def main():
         print_help()
         sys.exit(0)
     elif sys.argv[1] in {"-v", "--v", "-version", "--version"}:
-        print(f"panTools: version {__version__} {__author__}")
+        print(f"MGPGtools: version {__version__} {__author__}")
     elif sys.argv[1] in {"-h", "--h", "-help", "--help"}:
         print_help()
         sys.exit(0)

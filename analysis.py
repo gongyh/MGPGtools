@@ -47,4 +47,7 @@ class Analysis(object):
         if options.gene:
             tree.drawGeneTree()
         if options.genesFile:
-            tree.drawSpeciesTree()
+            if options.fasta:
+                tree.drawTreeWithContig()
+            else:
+                tree.drawSpeciesTree()

@@ -1,14 +1,16 @@
 import logging
 import os
 import multiprocessing
+import subprocess
 import pandas as pd
 from Bio import Seq
 from pathlib import Path
 from functools import partial
-from utils.meta import *
-from utils.common import *
-from utils.odgi import *
-from utils.gfa import *
+from utils.meta import get_info, getPanTxt
+from utils.common import check_directory, delete_temp_dir, run
+from utils.odgi import ogBuild, ogView
+from utils.gfa import nodeLength
+from utils.mummer import *
 
 
 class Core(object):
@@ -67,50 +69,9 @@ class Core(object):
                     k = tag + ":" + row[3] + "-" + row[4]
                     genePath.append(k)
                     geneTag[k] = gene
-                    l = int(row[4]) - int(row[3])
+                    l = int(row[4]) - int(row[3]) + 1
                     geneLength[gene] = l
         return geneTag, geneLength, genePath
-
-    def coreGene_fasta(self, coreGenes, outdir):
-        coregff = os.path.join(outdir, "core.gff")
-        corefasta = os.path.join(outdir, "core.fasta")
-        with open(self.gff, "r") as fgff, open(coregff, "w") as fcoregff:
-            lines = fgff.read().strip().split("\n")
-            for line in lines:
-                if line[0] == "#":
-                    fcoregff.write(line + "\n")
-                    continue
-                row = line.strip().split("\t")
-                if row[2] == "CDS":
-                    gene = row[8].split(";")[0].replace("ID=", "")
-                    if gene in coreGenes:
-                        fcoregff.write(line + "\n")
-        extractCoreGenesCmd = [
-            "gffread",
-            coregff,
-            "-g",
-            self.ref_genome,
-            "-x",
-            corefasta,
-        ]
-        isSuccess, stdout, stderr = run(extractCoreGenesCmd)
-
-    def filtBlastGene(self, blastResult, geneLength):
-        geneIteratorList = []
-        assemblGenes = []
-        with open(blastResult, "r") as f:
-            lines = f.read().strip().split("\n")
-            for l in lines:
-                row = l.strip().split("\t")
-                if row[0] in geneIteratorList:
-                    continue
-                else:
-                    geneIteratorList.append(row[0])
-                    geneName = row[0].replace("_gene", "")
-                    gene_length = geneLength[geneName]
-                    if (int(row[3]) * float(row[2]) / 100) / gene_length >= 0.8:
-                        assemblGenes.append(geneName)
-        return assemblGenes
 
     # 根据每个基因的位置提取子图
     def extractGenesOg(
@@ -155,10 +116,10 @@ class Core(object):
         genome_df = []
         variant_genome = []
         for index, row in genomeDF.iterrows():
-            # 去除参考基因组
+            # remove reference genome
             if genePath in str(row["path.name"]):
                 continue
-            # 基因组名称
+            # genome id
             genomeName = (
                 row["path.name"].split("#")[0] + "." + row["path.name"].split("#")[1]
             )
@@ -198,7 +159,7 @@ class Core(object):
         geneTag, geneL, genePath = self.extract_gff()
         geneList = list(geneL.keys())
         totalGenesNum = len(geneList)
-        ogBuild(self.gfa, ogFile, self.threads)
+        # ogBuild(self.gfa, ogFile, self.threads)
         ref = self.ref.split(".")[0] + self.ref.split(".")[1]
         # 缺失基因字典
         absenceGene = {}
@@ -270,39 +231,14 @@ class Core(object):
             coreGenes = f.read().strip().split("\n")
         tmp = os.path.join(self.outdir, "tmp")
         check_directory(tmp)
-        self.coreGene_fasta(coreGenes, tmp)
+        gff2fasta(self.gff, self.ref_genome, coreGenes, tmp)
         geneTag, geneL, genePath = self.extract_gff()
-        blastIndex = os.path.join(tmp, "index")
-        makeBlastDBCmd = [
-            "makeblastdb",
-            "-in",
-            self.fasta,
-            "-dbtype",
-            "nucl",
-            "-parse_seqids",
-            "-out",
-            blastIndex,
-        ]
-        run(makeBlastDBCmd)
         coreGeneFasta = os.path.join(tmp, "core.fasta")
-        blastResult = os.path.join(tmp, "blastResult")
-        blastCmd = [
-            "blastn",
-            "-query",
-            coreGeneFasta,
-            "-db",
-            blastIndex,
-            "-evalue",
-            "1e-6",
-            "-outfmt",
-            "6",
-            "-num_threads",
-            "6",
-            "-out",
-            blastResult,
-        ]
-        run(blastCmd)
-        assemblGenes = self.filtBlastGene(blastResult, geneL)
+        genesMapDict = filtNucmerResult(self.fasta, coreGeneFasta, geneL, tmp)
+        assemblGenes = []
+        for k, v in genesMapDict.items():
+            if v["assemblCore"]:
+                assemblGenes.append(k)
         outputFile = os.path.join(self.outdir, "completeness.txt")
         with open(outputFile, "w") as f:
             f.write(
@@ -310,4 +246,4 @@ class Core(object):
                     len(assemblGenes) / len(coreGenes)
                 )
             )
-        delete_temp_dir(os.path.join(self.outdir, "tmp"))
+        # delete_temp_dir(os.path.join(self.outdir, "tmp"))
