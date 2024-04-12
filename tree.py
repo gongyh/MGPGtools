@@ -62,7 +62,9 @@ class Tree(object):
         check_directory(tmp)
         ogBuild(self.gfa, ogFile, self.threads)
         gene_tag = self.extract_gff(list(self.gene))
-        self.getGeneRecord(tmp, ogFile, gene_tag, refGenome, list(self.gene))
+        self.getGeneRecord(
+            tmp, ogFile, gene_tag, refGenome, list(self.gene), false, "", None
+        )
         with open(os.path.join(self.outdir, "tmp", self.gene + ".dnd"), "r") as file:
             treNewick = file.read()
             treNewick = treNewick.replace("\n", "")
@@ -95,7 +97,7 @@ class Tree(object):
             refGenome=refGenome,
             withContig=False,
             contigName="",
-            extractFastaDict=None
+            extractFastaDict=None,
         )
         pool.map(partial_getGeneRecord, genesList)
         with open(os.path.join(tmp, "total.nw"), "w") as totalnw:
@@ -125,7 +127,7 @@ class Tree(object):
     def drawTreeWithContig(self):
         refGenome = get_info(self.meta, self.name)["ref"]
         contig = self.fasta.split("/")[-1]
-        contigName = contig[:contig.rfind('.')]
+        contigName = contig[: contig.rfind(".")]
         ogFile = os.path.join(self.outdir, "tmp", self.name + ".sorted.og")
         tmp = os.path.join(self.outdir, "tmp")
         check_directory(tmp)
@@ -172,7 +174,7 @@ class Tree(object):
                 else:
                     f.write(line + "\n")
         extractFastaDict = SeqIO.to_dict(SeqIO.parse(extractFastaFile, "fasta"))
-        for i,j in extractFastaDict.items():
+        for i, j in extractFastaDict.items():
             if genesMapDict[i]["orientation"] == "reverse":
                 extractFastaDict[i].seq = extractFastaDict[i].seq.reverse_complement()
         gene_tag = self.extract_gff(coreGenesWithContig)
@@ -185,8 +187,8 @@ class Tree(object):
             refGenome=refGenome,
             withContig=True,
             contigName=contigName,
-            extractFastaDict=extractFastaDict
-            )
+            extractFastaDict=extractFastaDict,
+        )
         pool.map(partial_getGeneRecord, coreGenesWithContig)
         with open(os.path.join(tmp, "total.nw"), "w") as totalnw:
             for i in coreGenesWithContig:
@@ -213,7 +215,15 @@ class Tree(object):
         toyplot.svg.render(canvas, os.path.join(self.outdir, "speciesTree.svg"))
 
     def getGeneRecord(
-        self, gene, outdir, ogFile, geneTag, refGenome, withContig, contigName, extractFastaDict
+        self,
+        gene,
+        outdir,
+        ogFile,
+        geneTag,
+        refGenome,
+        withContig,
+        contigName,
+        extractFastaDict,
     ):
         chrom = geneTag[gene][0]
         start = geneTag[gene][1]
@@ -289,7 +299,7 @@ class Tree(object):
                         tag = self.ref.replace(".", "#") + "#" + row[0]
                         geneTag[gene] = [tag, row[3], row[4]]
         return geneTag
-      
+
     def extractGff(self):
         genePath = []
         geneTag = {}
