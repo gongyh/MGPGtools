@@ -8,7 +8,7 @@ from pathlib import Path
 from functools import partial
 from utils.meta import get_info, getPanTxt
 from utils.common import check_directory, delete_temp_dir, run
-from utils.odgi import ogBuild, ogView
+from utils.odgi import ogBuild, ogView, ogPath
 from utils.gfa import nodeLength
 from utils.mummer import *
 

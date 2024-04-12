@@ -63,7 +63,7 @@ class Tree(object):
         ogBuild(self.gfa, ogFile, self.threads)
         gene_tag = self.extract_gff(list(self.gene))
         self.getGeneRecord(
-            tmp, ogFile, gene_tag, refGenome, list(self.gene), false, "", None
+            tmp, ogFile, gene_tag, refGenome, list(self.gene), False, "", None
         )
         with open(os.path.join(self.outdir, "tmp", self.gene + ".dnd"), "r") as file:
             treNewick = file.read()
