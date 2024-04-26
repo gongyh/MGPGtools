@@ -9,6 +9,7 @@ from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 from Bio import SeqIO
 from functools import partial
+from collections import OrderedDict
 from utils.odgi import ogBuild, ogView
 from utils.meta import get_info
 from utils.common import check_directory, delete_temp_dir, run
@@ -53,6 +54,8 @@ class Tree(object):
             get_info(self.meta, self.name)["ref"] + "_genomic.fna",
         )
         self.process = 16
+        self.ASTRAL = "/mnt/me4/zhousq/Astral/astral.5.7.8.jar"
+        self.nb = 100
 
     # Construct a phylogenetic tree for a single gene
     def drawGeneTree(self):
@@ -62,9 +65,7 @@ class Tree(object):
         check_directory(tmp)
         ogBuild(self.gfa, ogFile, self.threads)
         gene_tag = self.extract_gff(list(self.gene))
-        self.getGeneRecord(
-            tmp, ogFile, gene_tag, refGenome, list(self.gene), False, "", None
-        )
+        self.ramxl(tmp, ogFile, gene_tag, refGenome, list(self.gene), False, "", None)
         with open(os.path.join(self.outdir, "tmp", self.gene + ".dnd"), "r") as file:
             treNewick = file.read()
             treNewick = treNewick.replace("\n", "")
@@ -82,6 +83,14 @@ class Tree(object):
         refGenome = get_info(self.meta, self.name)["ref"]
         ogFile = os.path.join(self.outdir, "tmp", self.name + ".sorted.og")
         tmp = os.path.join(self.outdir, "tmp")
+        allSingleGenes_tree = os.path.join(
+            self.outdir, "tmp", "allSingleGenes_tree.nwk"
+        )
+        allSingleGenes_bootstrap = os.path.join(
+            self.outdir, "tmp", "allSingleGenes_bootstrap.txt"
+        )
+        astral_out = os.path.join(self.outdir, "tmp", "Astral.coalescend_out.result")
+        astral_tree = os.path.join(self.outdir, "tmp", "Astral.coalescend_tree.nwk")
         check_directory(tmp)
         ogBuild(self.gfa, ogFile, self.threads)
         genesList = []
@@ -89,8 +98,8 @@ class Tree(object):
             genesList = f.read().strip().split("\n")
         gene_tag = self.extract_gff(genesList)
         pool = multiprocessing.Pool(processes=self.process)
-        partial_getGeneRecord = partial(
-            self.getGeneRecord,
+        partial_ramxl = partial(
+            self.ramxl,
             outdir=tmp,
             ogFile=ogFile,
             geneTag=gene_tag,
@@ -99,27 +108,37 @@ class Tree(object):
             contigName="",
             extractFastaDict=None,
         )
-        pool.map(partial_getGeneRecord, genesList)
-        with open(os.path.join(tmp, "total.nw"), "w") as totalnw:
+        pool.map(partial_ramxl, genesList)
+        with open(allSingleGenes_tree, "w") as f:
             for i in genesList:
-                with open(os.path.join(tmp, i + ".dnd"), "r") as singlenw:
-                    fstr = singlenw.read()
-                    totalnw.write(fstr)
-        concatTreeCmd = [
-            "astral",
+                with open(
+                    os.path.join(tmp, "RAxML_bipartitions." + i + "_out.nwk"), "r"
+                ) as fin:
+                    f.write(fin.read())
+        with open(allSingleGenes_bootstrap, "w") as f:
+            for i in genesList:
+                f.write(os.path.join(tmp, "RAxML_bootstrap." + i + "_out.nwk") + "\n")
+        astralCmd = [
+            "java",
+            "-jar",
+            self.ASTRAL,
             "-i",
-            os.path.join(tmp, "total.nw"),
+            allSingleGenes_tree,
+            "-b",
+            allSingleGenes_bootstrap,
+            "-r",
+            str(self.nb),
             "-o",
-            os.path.join(tmp, "species.nw"),
+            astral_out,
         ]
-        run(concatTreeCmd)
-        with open(os.path.join(tmp, "species.nw"), "r") as fdnd:
-            treNewick = fdnd.read()
-            treNewick = treNewick.replace("\n", "")
-        tre = toytree.tree(treNewick, tree_format=0)
+        run(astralCmd)
+        os.system("tail -n 1 " + astral_out + " > " + astral_tree)
+        tre = toytree.tree(astral_tree, tree_format=0)
         style = {
             "tip_labels_align": True,
             "tip_labels_style": {"font-size": "9px"},
+            "node_labels": "support",
+            "node_sizes": 15,
         }
         canvas, axes, mark = tre.draw(width=400, height=300, **style)
         toyplot.svg.render(canvas, os.path.join(self.outdir, "speciesTree.svg"))
@@ -179,8 +198,8 @@ class Tree(object):
                 extractFastaDict[i].seq = extractFastaDict[i].seq.reverse_complement()
         gene_tag = self.extract_gff(coreGenesWithContig)
         pool = multiprocessing.Pool(processes=self.process)
-        partial_getGeneRecord = partial(
-            self.getGeneRecord,
+        partial_ramxl = partial(
+            self.ramxl,
             outdir=tmp,
             ogFile=ogFile,
             geneTag=gene_tag,
@@ -189,7 +208,7 @@ class Tree(object):
             contigName=contigName,
             extractFastaDict=extractFastaDict,
         )
-        pool.map(partial_getGeneRecord, coreGenesWithContig)
+        pool.map(partial_ramxl, coreGenesWithContig)
         with open(os.path.join(tmp, "total.nw"), "w") as totalnw:
             for i in coreGenesWithContig:
                 with open(os.path.join(tmp, i + ".dnd"), "r") as singlenw:
@@ -214,7 +233,7 @@ class Tree(object):
         canvas, axes, mark = tre.draw(width=400, height=300, **style)
         toyplot.svg.render(canvas, os.path.join(self.outdir, "speciesTree.svg"))
 
-    def getGeneRecord(
+    def ramxl(
         self,
         gene,
         outdir,
@@ -226,7 +245,7 @@ class Tree(object):
         extractFastaDict,
     ):
         chrom = geneTag[gene][0]
-        start = geneTag[gene][1]
+        start = str(int(geneTag[gene][1]) - 1)
         end = geneTag[gene][2]
         extractOgSortedFile = os.path.join(
             outdir, self.name + "." + gene + ".sorted.og"
@@ -277,13 +296,35 @@ class Tree(object):
             extractFastaDict[gene].id = contigName
             records.append(extractFastaDict[gene])
         SeqIO.write(records, os.path.join(outdir, gene + ".fasta"), "fasta")
-        cmds = [
-            "clustalw2",
-            "-INFILE=" + os.path.join(outdir, gene + ".fasta"),
-            "-ALIGN",
-            "-TYPE=DNA",
+        mafftCmd = ["mafft", "--auto", os.path.join(outdir, gene + ".fasta")]
+        isSuccess, stdout, stderr = run(mafftCmd)
+        mafftFasta = os.path.join(outdir, gene + ".mafft.fasta")
+        trimalFasta = os.path.join(outdir, gene + ".trimed.fasta")
+        out_tree_file = gene + "_out.nwk"
+        with open(mafftFasta, "w") as f:
+            f.write(stdout)
+        trimalCmd = ["trimal", "-in", mafftFasta, "-out", trimalFasta, "-automated1"]
+        run(trimalCmd)
+        raxmlCmd = [
+            "raxmlHPC-PTHREADS",
+            "-f",
+            "a",
+            "-N",
+            str(self.nb),
+            "-m",
+            "PROTGAMMAJTT",
+            "-x",
+            "123456",
+            "-p",
+            "123456",
+            "-s",
+            trimalFasta,
+            "-n",
+            out_tree_file,
+            "-w",
+            outdir,
         ]
-        run(cmds)
+        isSuccess, stdout, stderr = run(raxmlCmd)
 
     def extract_gff(self, genes):
         geneTag = {}

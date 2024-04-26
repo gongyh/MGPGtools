@@ -66,7 +66,7 @@ class Core(object):
                     #     break
                     gene = row[8].split(";")[0].replace("ID=", "")
                     tag = self.ref.replace(".", "#") + "#" + row[0]
-                    k = tag + ":" + row[3] + "-" + row[4]
+                    k = tag + ":" + str(int(row[3]) - 1) + "-" + row[4]
                     genePath.append(k)
                     geneTag[k] = gene
                     l = int(row[4]) - int(row[3]) + 1
@@ -159,7 +159,7 @@ class Core(object):
         geneTag, geneL, genePath = self.extract_gff()
         geneList = list(geneL.keys())
         totalGenesNum = len(geneList)
-        # ogBuild(self.gfa, ogFile, self.threads)
+        ogBuild(self.gfa, ogFile, self.threads)
         ref = self.ref.split(".")[0] + self.ref.split(".")[1]
         # 缺失基因字典
         absenceGene = {}
@@ -224,7 +224,7 @@ class Core(object):
                 "Cloud genes(0% <= strains < 15%): {}\n".format(len(coreGene["0-15%"]))
             )
             f.write("Total genes: {}\n".format(totalGenesNum))
-        delete_temp_dir(os.path.join(self.outdir, "tmp"))
+        # delete_temp_dir(os.path.join(self.outdir, "tmp"))
 
     def contigCompleteness(self):
         with open(self.coreGenes, "r") as f:
