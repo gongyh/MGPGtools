@@ -29,8 +29,10 @@ def gff2fasta(gff, refGenome, coreGenes, outdir):
     isSuccess, stdout, stderr = run(extractCoreGenesCmd)
 
 
-# Filter the nucmer results, extract gene IDs with a similarity greater than 80%
 def filtNucmerResult(fasta, queryFa, geneLength, outdir):
+    """
+    Filter the nucmer results, extract gene IDs with a similarity greater than 80%    
+    """
     geneMapDict = {}
     nucmerCmd = [
         "nucmer",

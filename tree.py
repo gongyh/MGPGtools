@@ -57,8 +57,10 @@ class Tree(object):
         self.ASTRAL = "/mnt/me4/zhousq/Astral/astral.5.7.8.jar"
         self.nb = 100
 
-    # Construct a phylogenetic tree for a single gene
     def drawGeneTree(self):
+        """
+        Construct a phylogenetic tree for a single gene.
+        """
         refGenome = get_info(self.meta, self.name)["ref"]
         ogFile = os.path.join(self.outdir, "tmp", self.name + ".sorted.og")
         tmp = os.path.join(self.outdir, "tmp")
@@ -78,8 +80,10 @@ class Tree(object):
         toyplot.svg.render(canvas, os.path.join(self.outdir, self.gene + ".svg"))
         # delete_temp_dir(os.path.join(self.outdir, "tmp"))
 
-    # Construct a phylogenetic tree composed of core genes from a specific species
     def drawSpeciesTree(self):
+        """
+        Construct a phylogenetic tree composed of core genes from a specific species.
+        """
         refGenome = get_info(self.meta, self.name)["ref"]
         ogFile = os.path.join(self.outdir, "tmp", self.name + ".sorted.og")
         tmp = os.path.join(self.outdir, "tmp")
@@ -244,6 +248,9 @@ class Tree(object):
         contigName,
         extractFastaDict,
     ):
+        """
+        Handle each gene to get RAxML output.
+        """
         chrom = geneTag[gene][0]
         start = str(int(geneTag[gene][1]) - 1)
         end = geneTag[gene][2]

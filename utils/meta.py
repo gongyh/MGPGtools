@@ -18,7 +18,7 @@ def rank_list(meta, rank_name):
 
 def get_info(meta, name):
     """
-    从Metadata.tsv中获取genus的信息
+    Retrieve the information of genus from Metadata.tsv.
     """
     k = {
         "domain": "",
