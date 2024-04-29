@@ -44,12 +44,12 @@ def processDf(df, coreGene):
     # Iterate through each row of the gene dataframe.
     for index, row in gene_df.iterrows():
         # tmp_df = pd.DataFrame(data=row).transpose()
-        # Find all the node IDs that are 1 starting from the 3rd column (where the first two columns are path.name and path.count), 
+        # Find all the node IDs that are 1 starting from the 3rd column (where the first two columns are path.name and path.count),
         # which represent the nodes for that gene. Obtain the column indices formed by these nodes.
         column_indexes = row.columns[3:][row.iloc[0, 3:] == 1].tolist()
         # Add the "path.name" index to the column indices.
         column_indexes.insert(0, "path.name")
-        # Extract partial columns from the genome dataframe based on the gene column. 
+        # Extract partial columns from the genome dataframe based on the gene column.
         # Rows with values not all equal to 0 represent mutation regions, while rows with all values equal to 0 represent non-mutation regions.
         genome_gene_df = genome_df.loc[:, column_indexes]
         genome_gene_df = genome_gene_df[(genome_gene_df.iloc[:, 1:] != 0).any(axis=1)]

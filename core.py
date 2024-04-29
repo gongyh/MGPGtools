@@ -3,15 +3,15 @@ import os
 import multiprocessing
 import subprocess
 import pandas as pd
-from Bio import Seq
-from Bio import pairwise2
+from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
+from Bio import Align
 from functools import partial
 from utils.meta import get_info, getPanTxt
-from utils.sequence import nucl_complement
 from utils.common import check_directory, delete_temp_dir, run
 from utils.odgi import ogBuild, ogView, ogPath
 from utils.gfa import nodeLength
+from utils.sequence import *
 from utils.mummer import *
 
 
@@ -50,10 +50,9 @@ class Core(object):
         self.coreGenes = options.coreGenes
         self.process = 16
 
-
     def extract_gff(self):
         """
-        Extract the start and end positions of genes, gene ID, 
+        Extract the start and end positions of genes, gene ID,
         and the gene path string for further analysis from the gff file.
         """
         genePath = []
@@ -68,7 +67,7 @@ class Core(object):
                 row = line.strip().split("\t")
                 if row[2] == "CDS":
                     # line_count += 1
-                    # if line_count > 20:
+                    # if line_count > 10:
                     #     break
                     gene = row[8].split(";")[0].replace("ID=", "")
                     tag = self.ref.replace(".", "#") + "#" + row[0]
@@ -79,9 +78,15 @@ class Core(object):
                     geneLength[gene] = l
         return geneTag, geneLength, genePath
 
-
     def extractGenesOg(
-        self, genePath, ogFile, outdir, geneTag, geneLength, genomeListExceptRef, genomeNum
+        self,
+        genePath,
+        ogFile,
+        outdir,
+        geneTag,
+        geneLength,
+        genomeListExceptRef,
+        genomeNum,
     ):
         """
         Extract subgraphs based on the positions of each gene.
@@ -110,90 +115,104 @@ class Core(object):
         p2.communicate()
         # Convert the sorted og file into a gfa file.
         ogView(extractSortedOg, extractGfa, 1)
-        nodeDict = {}
-        pathDict = {}
-        genes = {}
-        genes[geneName] = {}
-        genes[geneName]["core"] = []
-        genes[geneName]["prot"] = []
-        refSeq = ""
-        with open(extractGfa, "r") as f:
-            l = f.read().strip().split("\n")
-            for i in l:
-                row = i.strip().split("\t")
-                if row[0] == "S":
-                    nodeDict[row[1]] = row[2]
-                if row[0] == "P":
-                    p = row[2].split(",")
-                    seq = ""
-                    for s in p:
-                        if s[-1] == "+":
-                            seq += nodeDict[s[:-1]]
-                        else:
-                            seq += nucl_complement(nodeDict[s[:-1]])
-                    if (row[1].split("#")[0] + "." + row[1].split("#")[1]) == self.ref:
-                        refSeq = Seq(seq)
-                        continue
-                    pathDict[row[1]] = {}
-                    if int(p[0][:-1]) < int(p[-1][:-1]):
-                        pathDict[row[1]]= Seq(seq)
-                    else:
-                        pathDict[row[1]] = Seq(seq).reverse_complement()
-        refProt = refSeq.translate()
-        refProtLen = len(refProt)
-        for k, v in pathDict.items():
-            alignments = pairwise2.align.globalxx(sequenceA=refProt, sequenceB=v)
-            # Determine if the protein similarity is greater than 0.85.
-            if int(alignments[0].score) / refProtLen > 0.85:
-                gName = k.split("#")[0] + "." + k.split("#")[1]
-                if gName not in genes[geneName]["core"]:
-                    genes[geneName]["core"].append(gName)
-                genes[geneName]["prot"].append(SeqRecord(v, id=gName))
-        if len(genes[geneName]["core"]) < genomeNum:
+        nodeL = nodeLength(extractGfa)
+        if_success, stdout, stderr = ogPath(extractSortedOg, 1)
+        lines = stdout.split("\n")
+        lines.pop()
+        columns = lines[0].split("\t")
+        data = [l.split("\t") for l in lines[1:]]
+        # Matrix for each gene.
+        df = pd.DataFrame(data, columns=columns)
+        cols_to_extract = df.columns[3:][df.iloc[0, 3:] == "1"].tolist()
+        cols_to_extract.insert(0, "path.name")
+        genomeDF = df[cols_to_extract]
+        # genome_df: Record the genome names present in the matrix.
+        # variant_genome: Genomes with a total number of mutated bases greater than 0.2 on this gene.
+        dna_80_genome = []
+        for index, row in genomeDF.iterrows():
+            # remove reference genome
+            if genePath in str(row["path.name"]):
+                continue
+            # genome id
+            genomeName = (
+                row["path.name"].split("#")[0] + "." + row["path.name"].split("#")[1]
+            )
+            if genomeName in dna_80_genome:
+                continue
+            zeroColumns = list(genomeDF.columns[1:][row[1:] == "0"])
+            length = 0
+            for n in zeroColumns:
+                length += nodeL[n[5:]]
+            if length / gene_length <= 0.2:
+                dna_80_genome.append(genomeName)
+        if len(dna_80_genome) != 0:
+            nodeDict = {}
+            pathDict = {}
+            genes = {}
+            genes[geneName] = {}
+            genes[geneName]["core"] = []
             genes[geneName]["prot"] = []
-        return genes
-        # nodeL = nodeLength(extractGfa)
-        # if_success, stdout, stderr = ogPath(extractSortedOg, 1)
-        # lines = stdout.split("\n")
-        # lines.pop()
-        # columns = lines[0].split("\t")
-        # data = [l.split("\t") for l in lines[1:]]
-        # # Matrix for each gene.
-        # df = pd.DataFrame(data, columns=columns)
-        # cols_to_extract = df.columns[3:][df.iloc[0, 3:] == "1"].tolist()
-        # cols_to_extract.insert(0, "path.name")
-        # genomeDF = df[cols_to_extract]
-        # # genome_df: Record the genome names present in the matrix.
-        # # variant_genome: Genomes with a total number of mutated bases greater than 0.2 on this gene.
-        # genome_df = []
-        # variant_genome = []
-        # for index, row in genomeDF.iterrows():
-        #     # remove reference genome
-        #     if genePath in str(row["path.name"]):
-        #         continue
-        #     # genome id
-        #     genomeName = (
-        #         row["path.name"].split("#")[0] + "." + row["path.name"].split("#")[1]
-        #     )
-        #     if genomeName not in genome_df:
-        #         genome_df.append(genomeName)
-        #     else:
-        #         if genomeName not in variant_genome:
-        #             continue
-        #     zeroColumns = list(genomeDF.columns[1:][row[1:] == "0"])
-        #     length = 0
-        #     for n in zeroColumns:
-        #         length += nodeL[n[5:]]
-        #     if length / gene_length > 0.2:
-        #         if genomeName not in variant_genome:
-        #             variant_genome.append(genomeName)
-        # absence_genome = list(set(genomeListExceptRef) - set(genome_df))
-        # variant_genome.extend(absence_genome)
-        # absenceGene = {}
-        # absenceGene[geneName] = variant_genome
-        # # delete_files(extractSortedOg)
-        # # delete_files(extractGfa)
-        # return absenceGene
+            with open(extractGfa, "r") as f:
+                l = f.read().strip().split("\n")
+                for i in l:
+                    row = i.strip().split("\t")
+                    if row[0] == "S":
+                        nodeDict[row[1]] = row[2]
+                    if row[0] == "P":
+                        # genome name.
+                        gName = row[1].split("#")[0] + "." + row[1].split("#")[1]
+                        if gName == self.ref:
+                            if "," in row[2]:
+                                p = row[2].split(",")
+                            else:
+                                p = [row[2]]
+                            seq = ""
+                            for s in p:
+                                if s[-1] == "+":
+                                    seq += nodeDict[s[:-1]]
+                                else:
+                                    seq += nucl_complement(nodeDict[s[:-1]])
+                            seq = get_protein_coding_regions(seq)
+                            refSeq = Seq(seq)
+                        else:
+                            if gName in dna_80_genome:
+                                if "," in row[2]:
+                                    p = row[2].split(",")
+                                else:
+                                    p = [row[2]]
+                                seq = ""
+                                for s in p:
+                                    if s[-1] == "+":
+                                        seq += nodeDict[s[:-1]]
+                                    else:
+                                        seq += nucl_complement(nodeDict[s[:-1]])
+                                pathDict[row[1]] = {}
+                                if int(p[0][:-1]) < int(p[-1][:-1]):
+                                    seq = get_protein_coding_regions(seq)
+                                else:
+                                    seq = get_protein_coding_regions(
+                                        nucl_complement(seq)
+                                    )
+                                pathDict[row[1]] = Seq(seq)
+            refProt = refSeq.translate(table="Bacterial")
+            refProtLen = len(refProt)
+            for k, v in pathDict.items():
+                aligner = Align.PairwiseAligner()
+                aligner.mode = "global"
+                alignments = aligner.align(refProt, v.translate(table="Bacterial"))
+                # Determine if the protein similarity is greater than 0.85.
+                if int(alignments[0].score) / refProtLen > 0.85:
+                    gName = k.split("#")[0] + "." + k.split("#")[1]
+                    if gName not in genes[geneName]["core"]:
+                        genes[geneName]["core"].append(gName)
+                        genes[geneName]["prot"].append(
+                            SeqRecord(v.translate(table="Bacterial"), id=gName)
+                        )
+            if len(genes[geneName]["core"]) < genomeNum:
+                genes[geneName]["prot"] = []
+            return genes
+        else:
+            return {}
 
     def staticCoreGene(self):
         # Check the temporary file storage directory, create if not exist.
@@ -206,7 +225,7 @@ class Core(object):
         genomeNum = len(genomeList)
         # List containing all genomes except the reference.
         genomeList_except_ref = [x for x in genomeList if x != self.ref]
-        # Utilize ODGI to construct an OG-formatted file, sort it, extract subgraphs based on a BED file, 
+        # Utilize ODGI to construct an OG-formatted file, sort it, extract subgraphs based on a BED file,
         # display path information of the subgraphs, and convert the subgraphs to GFA format file.
         ogFile = os.path.join(self.outdir, "tmp", self.name + ".sorted.og")
         geneTag, geneL, genePath = self.extract_gff()
@@ -215,7 +234,7 @@ class Core(object):
         ogBuild(self.gfa, ogFile, self.threads)
         ref = self.ref.split(".")[0] + self.ref.split(".")[1]
         # Missing gene dictionary.
-        absenceGene = {}
+        existGenes = {}
         result = []
         gene_99_100 = []
         # Multiple processes handle the graph for each gene, then merge the results.
@@ -227,23 +246,23 @@ class Core(object):
             geneTag=geneTag,
             geneLength=geneL,
             genomeListExceptRef=genomeList_except_ref,
-            genomeNum = genomeNum
+            genomeNum=genomeNum,
         )
         result = corePool.map(partial_extractGeneOg, genePath)
         for j in result:
-            absenceGene.update(j)
+            existGenes.update(j)
         corePool.close()
         corePool.join()
         # Gene matrix
         geneMatrix = pd.DataFrame(index=geneList, columns=genomeList)
         # By default, all are set to 1.
-        geneMatrix[:] = 1
+        geneMatrix[:] = 0
         geneMatrix = geneMatrix.astype(int)
         # Change the corresponding values to 0 based on the missing gene dictionary.
-        for a, b in absenceGene.items():
-            # The number of total genomes minus the number of missing genomes, 
+        for a, b in existGenes.items():
+            # The number of total genomes minus the number of missing genomes,
             # gives the number of genomes that have this gene.
-            l = genomeNum - len(b)
+            l = len(b["core"])
             if 0 <= l / genomeNum < 0.15:
                 coreGene["0-15%"].append(a)
             if 0.15 <= l / genomeNum < 0.95:
@@ -256,8 +275,8 @@ class Core(object):
             if l / genomeNum == 1:
                 coreGene["100%"].append(a)
                 gene_99_100.append(a)
-            for i in b:
-                geneMatrix.at[a, i] = 0
+            for i in b["core"]:
+                geneMatrix.at[a, i] = 1
         # Output gene matrix to gene_presence_absence.tsv.
         geneMatrix.to_csv(
             os.path.join(self.outdir, "gene_presence_absence.tsv"), sep="\t", index=True
@@ -279,7 +298,7 @@ class Core(object):
                 "Cloud genes(0% <= strains < 15%): {}\n".format(len(coreGene["0-15%"]))
             )
             f.write("Total genes: {}\n".format(totalGenesNum))
-        # delete_temp_dir(os.path.join(self.outdir, "tmp"))
+        delete_temp_dir(os.path.join(self.outdir, "tmp"))
 
     def contigCompleteness(self):
         with open(self.coreGenes, "r") as f:
@@ -301,4 +320,4 @@ class Core(object):
                     len(assemblGenes) / len(coreGenes)
                 )
             )
-        # delete_temp_dir(os.path.join(self.outdir, "tmp"))
+        delete_temp_dir(os.path.join(self.outdir, "tmp"))

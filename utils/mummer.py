@@ -3,8 +3,10 @@ import multiprocessing
 from utils.common import run
 
 
-# Generate new gff and fasta files based on the gff file and core gene list
 def gff2fasta(gff, refGenome, coreGenes, outdir):
+    """
+    Generate new gff and fasta files based on the gff file and core gene list
+    """
     coregff = os.path.join(outdir, "core.gff")
     corefasta = os.path.join(outdir, "core.fasta")
     with open(gff, "r") as fgff, open(coregff, "w") as fcoregff:
@@ -31,7 +33,7 @@ def gff2fasta(gff, refGenome, coreGenes, outdir):
 
 def filtNucmerResult(fasta, queryFa, geneLength, outdir):
     """
-    Filter the nucmer results, extract gene IDs with a similarity greater than 80%    
+    Filter the nucmer results, extract gene IDs with a similarity greater than 80%
     """
     geneMapDict = {}
     nucmerCmd = [
