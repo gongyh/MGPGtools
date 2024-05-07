@@ -48,7 +48,7 @@ class Core(object):
         )
         self.genomesNum = int(get_info(self.meta, self.name)["genomesNum"])
         self.coreGenes = options.coreGenes
-        self.process = 16
+        self.process = 6
 
     def extract_gff(self):
         """
@@ -67,7 +67,7 @@ class Core(object):
                 row = line.strip().split("\t")
                 if row[2] == "CDS":
                     # line_count += 1
-                    # if line_count > 10:
+                    # if line_count > 11:
                     #     break
                     gene = row[8].split(";")[0].replace("ID=", "")
                     tag = self.ref.replace(".", "#") + "#" + row[0]
@@ -128,30 +128,27 @@ class Core(object):
         genomeDF = df[cols_to_extract]
         # genome_df: Record the genome names present in the matrix.
         # variant_genome: Genomes with a total number of mutated bases greater than 0.2 on this gene.
-        dna_80_genome = []
+        dna_80_path = []
         for index, row in genomeDF.iterrows():
-            # remove reference genome
-            if genePath in str(row["path.name"]):
-                continue
-            # genome id
-            genomeName = (
-                row["path.name"].split("#")[0] + "." + row["path.name"].split("#")[1]
-            )
-            if genomeName in dna_80_genome:
+            pathName = str(row["path.name"])
+            # remove reference genome path
+            if genePath in pathName:
                 continue
             zeroColumns = list(genomeDF.columns[1:][row[1:] == "0"])
             length = 0
             for n in zeroColumns:
                 length += nodeL[n[5:]]
             if length / gene_length <= 0.2:
-                dna_80_genome.append(genomeName)
-        if len(dna_80_genome) != 0:
+                dna_80_path.append(pathName)
+        genes = {}
+        genes[geneName] = {}
+        genes[geneName]["core"] = [self.ref]
+        genes[geneName]["prot"] = []
+        if len(dna_80_path) != 0:
+            rev_start_codons = ["CAT", "CAA", "CAC"]
+            rev_complement = False
             nodeDict = {}
             pathDict = {}
-            genes = {}
-            genes[geneName] = {}
-            genes[geneName]["core"] = []
-            genes[geneName]["prot"] = []
             with open(extractGfa, "r") as f:
                 l = f.read().strip().split("\n")
                 for i in l:
@@ -159,9 +156,9 @@ class Core(object):
                     if row[0] == "S":
                         nodeDict[row[1]] = row[2]
                     if row[0] == "P":
-                        # genome name.
-                        gName = row[1].split("#")[0] + "." + row[1].split("#")[1]
-                        if gName == self.ref:
+                        path_name = row[1]
+                        # reference genome path
+                        if genePath.split("#")[0] in path_name:
                             if "," in row[2]:
                                 p = row[2].split(",")
                             else:
@@ -172,10 +169,13 @@ class Core(object):
                                     seq += nodeDict[s[:-1]]
                                 else:
                                     seq += nucl_complement(nodeDict[s[:-1]])
-                            seq = get_protein_coding_regions(seq)
+                            if seq[-3:] in rev_start_codons:
+                                rev_complement = True
+                                seq = nucl_complement(seq)
+                            seq = get_coding_seq(seq)
                             refSeq = Seq(seq)
                         else:
-                            if gName in dna_80_genome:
+                            if path_name in dna_80_path:
                                 if "," in row[2]:
                                     p = row[2].split(",")
                                 else:
@@ -186,19 +186,24 @@ class Core(object):
                                         seq += nodeDict[s[:-1]]
                                     else:
                                         seq += nucl_complement(nodeDict[s[:-1]])
-                                pathDict[row[1]] = {}
-                                if int(p[0][:-1]) < int(p[-1][:-1]):
-                                    seq = get_protein_coding_regions(seq)
+                                if rev_complement:
+                                    if int(p[0][:-1]) < int(p[-1][:-1]):
+                                        seq = nucl_complement(seq)
                                 else:
-                                    seq = get_protein_coding_regions(
-                                        nucl_complement(seq)
-                                    )
-                                pathDict[row[1]] = Seq(seq)
+                                    if int(p[0][:-1]) > int(p[-1][:-1]):
+                                        seq = nucl_complement(seq)
+                                seq = get_coding_seq(seq)
+                                pathDict[path_name] = Seq(seq)
             refProt = refSeq.translate(table="Bacterial")
             refProtLen = len(refProt)
             for k, v in pathDict.items():
                 aligner = Align.PairwiseAligner()
                 aligner.mode = "global"
+                # print(geneName)
+                # print("***************")
+                # print(k)
+                # print("***************")
+                # print(v)
                 alignments = aligner.align(refProt, v.translate(table="Bacterial"))
                 # Determine if the protein similarity is greater than 0.85.
                 if int(alignments[0].score) / refProtLen > 0.85:
@@ -210,9 +215,7 @@ class Core(object):
                         )
             if len(genes[geneName]["core"]) < genomeNum:
                 genes[geneName]["prot"] = []
-            return genes
-        else:
-            return {}
+        return genes
 
     def staticCoreGene(self):
         # Check the temporary file storage directory, create if not exist.
@@ -298,7 +301,7 @@ class Core(object):
                 "Cloud genes(0% <= strains < 15%): {}\n".format(len(coreGene["0-15%"]))
             )
             f.write("Total genes: {}\n".format(totalGenesNum))
-        delete_temp_dir(os.path.join(self.outdir, "tmp"))
+        # delete_temp_dir(os.path.join(self.outdir, "tmp"))
 
     def contigCompleteness(self):
         with open(self.coreGenes, "r") as f:
